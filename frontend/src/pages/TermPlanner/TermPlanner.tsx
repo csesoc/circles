@@ -20,8 +20,7 @@ import {
   unscheduleCourse,
   validateTermPlanner
 } from 'utils/api/plannerApi';
-import useUserCourses from 'utils/apiHooks/useUserCourses';
-import useUserPlanner from 'utils/apiHooks/useUserPlanner';
+import { useUserCourses, useUserPlanner } from 'utils/apiHooks/user';
 import openNotification from 'utils/openNotification';
 import PageTemplate from 'components/PageTemplate';
 import Spinner from 'components/Spinner';

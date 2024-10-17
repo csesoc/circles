@@ -2,7 +2,7 @@ import React from 'react';
 import { EyeInvisibleFilled } from '@ant-design/icons';
 import { Tooltip } from 'antd';
 import { badPlanner, PlannerResponse } from 'types/userResponse';
-import useUserPlanner from 'utils/apiHooks/useUserPlanner';
+import { useUserPlanner } from 'utils/apiHooks/user';
 import openNotification from 'utils/openNotification';
 import useSettings from 'hooks/useSettings';
 

@@ -5,7 +5,7 @@ import { Course, CoursesUnlockedWhenTaken } from 'types/api';
 import { CourseList } from 'types/courses';
 import { badCourses, badValidations } from 'types/userResponse';
 import { validateTermPlanner } from 'utils/api/plannerApi';
-import useUserCourses from 'utils/apiHooks/useUserCourses';
+import { useUserCourses } from 'utils/apiHooks/user';
 import Collapsible from 'components/Collapsible';
 import CourseTag from 'components/CourseTag';
 import PrerequisiteTree from 'components/PrerequisiteTree';

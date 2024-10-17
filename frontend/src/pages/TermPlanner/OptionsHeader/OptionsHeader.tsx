@@ -13,7 +13,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Tippy from '@tippyjs/react';
 import { Popconfirm, Switch, Tooltip } from 'antd';
 import { unscheduleAll } from 'utils/api/plannerApi';
-import useUserPlanner from 'utils/apiHooks/useUserPlanner';
+import { useUserPlanner } from 'utils/apiHooks/user';
 import useSettings from 'hooks/useSettings';
 import useToken from 'hooks/useToken';
 import ExportPlannerMenu from '../ExportPlannerMenu';

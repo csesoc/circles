@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Tabs } from 'antd';
 import { badCourses } from 'types/userResponse';
-import useUserCourses from 'utils/apiHooks/useUserCourses';
+import { useUserCourses } from 'utils/apiHooks/user';
 import CourseSearchBar from 'components/CourseSearchBar';
 import PageTemplate from 'components/PageTemplate';
 import SidebarDrawer from 'components/SidebarDrawer';

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Typography } from 'antd';
 import { CoursesResponse } from 'types/userResponse';
 import { fetchAllDegrees } from 'utils/api/programsApi';
-import useUserDegree from 'utils/apiHooks/useUserDegree';
+import { useUserDegree } from 'utils/apiHooks/user';
 import CourseSearchBar from 'components/CourseSearchBar';
 import { useAppDispatch } from 'hooks';
 import { addTab } from 'reducers/courseTabsSlice';

@@ -5,7 +5,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Button, Tooltip, Typography } from 'antd';
 import { badCourses } from 'types/userResponse';
 import { removeAll } from 'utils/api/plannerApi';
-import useUserCourses from 'utils/apiHooks/useUserCourses';
+import { useUserCourses } from 'utils/apiHooks/user';
 import CourseCartCard from 'components/CourseCartCard';
 import useToken from 'hooks/useToken';
 import S from './styles';

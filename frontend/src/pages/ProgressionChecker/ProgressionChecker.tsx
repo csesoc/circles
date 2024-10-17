@@ -17,9 +17,7 @@ import {
 import { ProgramStructure } from 'types/structure';
 import { badCourses, badPlanner } from 'types/userResponse';
 import { getProgramStructure } from 'utils/api/programsApi';
-import useUserCourses from 'utils/apiHooks/useUserCourses';
-import useUserDegree from 'utils/apiHooks/useUserDegree';
-import useUserPlanner from 'utils/apiHooks/useUserPlanner';
+import { useUserCourses, useUserDegree, useUserPlanner } from 'utils/apiHooks/user';
 import getNumTerms from 'utils/getNumTerms';
 import openNotification from 'utils/openNotification';
 import Collapsible from 'components/Collapsible';

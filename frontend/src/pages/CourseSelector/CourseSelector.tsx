@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import useUserCourses from 'utils/apiHooks/useUserCourses';
-import useUserDegree from 'utils/apiHooks/useUserDegree';
+import { useUserCourses, useUserDegree } from 'utils/apiHooks/user';
 import openNotification from 'utils/openNotification';
 import infographic from 'assets/infographicFontIndependent.svg';
 import CourseDescriptionPanel from 'components/CourseDescriptionPanel';
@@ -15,7 +14,6 @@ import S from './styles';
 
 const CourseSelector = () => {
   const coursesQuery = useUserCourses();
-
   const degreeQuery = useUserDegree();
 
   const [showedNotif, setShowedNotif] = useState(false);

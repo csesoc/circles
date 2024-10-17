@@ -7,8 +7,7 @@ import {
   PlannerResponse,
   ValidateResponse
 } from 'types/userResponse';
-import useUserCourses from 'utils/apiHooks/useUserCourses';
-import useUserPlanner from 'utils/apiHooks/useUserPlanner';
+import { useUserCourses, useUserPlanner } from 'utils/apiHooks/user';
 import Spinner from 'components/Spinner';
 import useMediaQuery from 'hooks/useMediaQuery';
 import DraggableCourse from '../DraggableCourse';
