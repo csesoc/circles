@@ -17,13 +17,14 @@ import {
 import { ProgramStructure } from 'types/structure';
 import { badCourses, badPlanner } from 'types/userResponse';
 import { getProgramStructure } from 'utils/api/programsApi';
-import { getUserCourses, getUserDegree, getUserPlanner } from 'utils/api/userApi';
+import useUserCourses from 'utils/apiHooks/useUserCourses';
+import useUserDegree from 'utils/apiHooks/useUserDegree';
+import useUserPlanner from 'utils/apiHooks/useUserPlanner';
 import getNumTerms from 'utils/getNumTerms';
 import openNotification from 'utils/openNotification';
 import Collapsible from 'components/Collapsible';
 import PageTemplate from 'components/PageTemplate';
 import { MAX_COURSES_OVERFLOW } from 'config/constants';
-import useToken from 'hooks/useToken';
 import Dashboard from './Dashboard';
 import GenericCoursesSection from './GenericCoursesSection';
 import GridView from './GridView';
@@ -33,19 +34,11 @@ import TableView from './TableView';
 const { Title } = Typography;
 
 const ProgressionChecker = () => {
-  const token = useToken();
-
-  const plannerQuery = useQuery({
-    queryKey: ['planner'],
-    queryFn: () => getUserPlanner(token)
-  });
+  const plannerQuery = useUserPlanner();
   const planner = plannerQuery.data ?? badPlanner;
   const { unplanned } = planner;
 
-  const degreeQuery = useQuery({
-    queryKey: ['degree'],
-    queryFn: () => getUserDegree(token)
-  });
+  const degreeQuery = useUserDegree();
   const degree = degreeQuery.data;
 
   const structureQuery = useQuery({
@@ -66,10 +59,7 @@ const ProgressionChecker = () => {
   }, []);
 
   const [view, setView] = useState(Views.GRID_CONCISE);
-  const coursesQuery = useQuery({
-    queryKey: ['courses'],
-    queryFn: () => getUserCourses(token)
-  });
+  const coursesQuery = useUserCourses();
   const courses = coursesQuery.data ?? badCourses;
 
   const countedCourses: string[] = [];

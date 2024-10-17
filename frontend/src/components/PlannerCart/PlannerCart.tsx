@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CalendarOutlined, DeleteOutlined } from '@ant-design/icons';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { Button, Tooltip, Typography } from 'antd';
 import { badCourses } from 'types/userResponse';
 import { removeAll } from 'utils/api/plannerApi';
-import { getUserCourses } from 'utils/api/userApi';
+import useUserCourses from 'utils/apiHooks/useUserCourses';
 import CourseCartCard from 'components/CourseCartCard';
 import useToken from 'hooks/useToken';
 import S from './styles';
@@ -17,13 +17,7 @@ const PlannerCart = () => {
   const [showMenu, setShowMenu] = useState(false);
   const token = useToken();
 
-  const courses =
-    useQuery({
-      queryKey: ['courses'],
-      queryFn: () => getUserCourses(token),
-      enabled: showMenu,
-      staleTime: 100000
-    }).data ?? badCourses;
+  const courses = useUserCourses().data ?? badCourses;
 
   const removeAllCourses = useMutation({
     mutationKey: ['removeCourses'],

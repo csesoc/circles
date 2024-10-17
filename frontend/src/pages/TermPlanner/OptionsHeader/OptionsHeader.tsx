@@ -9,11 +9,11 @@ import {
   UploadOutlined,
   WarningFilled
 } from '@ant-design/icons';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Tippy from '@tippyjs/react';
 import { Popconfirm, Switch, Tooltip } from 'antd';
 import { unscheduleAll } from 'utils/api/plannerApi';
-import { getUserPlanner } from 'utils/api/userApi';
+import useUserPlanner from 'utils/apiHooks/useUserPlanner';
 import useSettings from 'hooks/useSettings';
 import useToken from 'hooks/useToken';
 import ExportPlannerMenu from '../ExportPlannerMenu';
@@ -30,10 +30,7 @@ const OptionsHeader = () => {
   const token = useToken();
   const queryClient = useQueryClient();
 
-  const plannerQuery = useQuery({
-    queryKey: ['planner'],
-    queryFn: () => getUserPlanner(token)
-  });
+  const plannerQuery = useUserPlanner();
   const planner = plannerQuery.data;
 
   const {

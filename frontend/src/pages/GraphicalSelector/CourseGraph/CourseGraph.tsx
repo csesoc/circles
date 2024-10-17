@@ -12,7 +12,9 @@ import { CourseEdge } from 'types/api';
 import { useDebouncedCallback } from 'use-debounce';
 import { getAllUnlockedCourses } from 'utils/api/coursesApi';
 import { getProgramGraph } from 'utils/api/programsApi';
-import { getUserCourses, getUserDegree, getUserPlanner } from 'utils/api/userApi';
+import useUserCourses from 'utils/apiHooks/useUserCourses';
+import useUserDegree from 'utils/apiHooks/useUserDegree';
+import useUserPlanner from 'utils/apiHooks/useUserPlanner';
 import { unwrapQuery } from 'utils/queryUtils';
 import Spinner from 'components/Spinner';
 import { useAppWindowSize } from 'hooks';
@@ -58,18 +60,10 @@ const CourseGraph = ({
 }: Props) => {
   const token = useToken();
 
-  const degreeQuery = useQuery({
-    queryKey: ['degree'],
-    queryFn: () => getUserDegree(token)
-  });
-  const plannerQuery = useQuery({
-    queryKey: ['planner'],
-    queryFn: () => getUserPlanner(token)
-  });
-  const coursesQuery = useQuery({
-    queryKey: ['courses'],
-    queryFn: () => getUserCourses(token)
-  });
+  const degreeQuery = useUserDegree();
+  const plannerQuery = useUserPlanner();
+  const coursesQuery = useUserCourses();
+
   const windowSize = useAppWindowSize();
   const { theme } = useSettings();
   const previousTheme = useRef<typeof theme>(theme);

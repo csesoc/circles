@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Tabs } from 'antd';
 import { badCourses } from 'types/userResponse';
-import { getUserCourses } from 'utils/api/userApi';
+import useUserCourses from 'utils/apiHooks/useUserCourses';
 import CourseSearchBar from 'components/CourseSearchBar';
 import PageTemplate from 'components/PageTemplate';
 import SidebarDrawer from 'components/SidebarDrawer';
-import useToken from 'hooks/useToken';
 import CS from './common/styles';
 import { COURSE_INFO_TAB, HELP_TAB, PROGRAM_STRUCTURE_TAB } from './constants';
 import CourseGraph from './CourseGraph';
@@ -14,14 +12,10 @@ import HowToUse from './HowToUse';
 import S from './styles';
 
 const GraphicalSelector = () => {
-  const token = useToken();
   const [fullscreen, setFullscreen] = useState(false);
   const [courseCode, setCourseCode] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(HELP_TAB);
-  const coursesQuery = useQuery({
-    queryKey: ['courses'],
-    queryFn: () => getUserCourses(token)
-  });
+  const coursesQuery = useUserCourses();
   const [loading, setLoading] = useState(true);
   const courses = coursesQuery.data || badCourses;
 

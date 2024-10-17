@@ -1,5 +1,4 @@
 import React, { Suspense } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Course } from 'types/api';
 import {
   badCourses,
@@ -8,10 +7,10 @@ import {
   PlannerResponse,
   ValidateResponse
 } from 'types/userResponse';
-import { getUserCourses, getUserPlanner } from 'utils/api/userApi';
+import useUserCourses from 'utils/apiHooks/useUserCourses';
+import useUserPlanner from 'utils/apiHooks/useUserPlanner';
 import Spinner from 'components/Spinner';
 import useMediaQuery from 'hooks/useMediaQuery';
-import useToken from 'hooks/useToken';
 import DraggableCourse from '../DraggableCourse';
 import S from './styles';
 
@@ -26,18 +25,11 @@ const Droppable = React.lazy(() =>
 );
 
 const UnplannedColumn = ({ dragging, courseInfos, validateInfos }: Props) => {
-  const token = useToken();
-  const plannerQuery = useQuery({
-    queryKey: ['planner'],
-    queryFn: () => getUserPlanner(token)
-  });
+  const plannerQuery = useUserPlanner();
   const planner: PlannerResponse = plannerQuery.data ?? badPlanner;
   const { unplanned, isSummerEnabled } = planner;
 
-  const coursesQuery = useQuery({
-    queryKey: ['courses'],
-    queryFn: () => getUserCourses(token)
-  });
+  const coursesQuery = useUserCourses();
   const courses: CoursesResponse = coursesQuery.data ?? badCourses;
 
   const isSmall = useMediaQuery('(max-width: 1400px)');

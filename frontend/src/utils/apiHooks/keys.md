@@ -1,0 +1,3 @@
+- `getUserPlanner`: user, <uid>, planner
+- `getUserCourses`: user, <uid>, planner, courses
+- `getUserDegree`: user, <uid>, degree

@@ -5,7 +5,7 @@ import { Course, CoursesUnlockedWhenTaken } from 'types/api';
 import { CourseList } from 'types/courses';
 import { badCourses, badValidations } from 'types/userResponse';
 import { validateTermPlanner } from 'utils/api/plannerApi';
-import { getUserCourses } from 'utils/api/userApi';
+import useUserCourses from 'utils/apiHooks/useUserCourses';
 import Collapsible from 'components/Collapsible';
 import CourseTag from 'components/CourseTag';
 import PrerequisiteTree from 'components/PrerequisiteTree';
@@ -30,11 +30,7 @@ const CourseInfoDrawers = ({
 }: CourseInfoDrawersProps) => {
   const token = useToken();
 
-  const courses =
-    useQuery({
-      queryKey: ['courses'],
-      queryFn: () => getUserCourses(token)
-    }).data || badCourses;
+  const courses = useUserCourses().data || badCourses;
 
   const pathFromInPlanner = pathFrom.filter((courseCode) =>
     Object.keys(courses).includes(courseCode)

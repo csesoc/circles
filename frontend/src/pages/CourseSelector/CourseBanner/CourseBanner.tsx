@@ -3,10 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { Typography } from 'antd';
 import { CoursesResponse } from 'types/userResponse';
 import { fetchAllDegrees } from 'utils/api/programsApi';
-import { getUserDegree } from 'utils/api/userApi';
+import useUserDegree from 'utils/apiHooks/useUserDegree';
 import CourseSearchBar from 'components/CourseSearchBar';
 import { useAppDispatch } from 'hooks';
-import useToken from 'hooks/useToken';
 import { addTab } from 'reducers/courseTabsSlice';
 import S from './styles';
 
@@ -17,13 +16,9 @@ type CourseBannerProps = {
 };
 
 const CourseBanner = ({ courses }: CourseBannerProps) => {
-  const token = useToken();
   const dispatch = useAppDispatch();
 
-  const degreeQuery = useQuery({
-    queryKey: ['degree'],
-    queryFn: () => getUserDegree(token)
-  });
+  const degreeQuery = useUserDegree();
   const allPrograms = useQuery({
     queryKey: ['programs'],
     queryFn: fetchAllDegrees

@@ -1,26 +1,19 @@
 import React from 'react';
 import { EyeInvisibleFilled } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
 import { Tooltip } from 'antd';
 import { badPlanner, PlannerResponse } from 'types/userResponse';
-import { getUserPlanner } from 'utils/api/userApi';
+import useUserPlanner from 'utils/apiHooks/useUserPlanner';
 import openNotification from 'utils/openNotification';
 import useSettings from 'hooks/useSettings';
-import useToken from 'hooks/useToken';
 
 type Props = {
   year: number;
 };
 
 const HideYearTooltip = ({ year }: Props) => {
-  const token = useToken();
-
   const { hiddenYears, hideYear } = useSettings();
 
-  const plannerQuery = useQuery({
-    queryKey: ['planner'],
-    queryFn: () => getUserPlanner(token)
-  });
+  const plannerQuery = useUserPlanner();
   const planner: PlannerResponse = plannerQuery.data ?? badPlanner;
   const numYears = planner.years.length;
 

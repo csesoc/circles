@@ -20,7 +20,8 @@ import {
   unscheduleCourse,
   validateTermPlanner
 } from 'utils/api/plannerApi';
-import { getUserCourses, getUserPlanner } from 'utils/api/userApi';
+import useUserCourses from 'utils/apiHooks/useUserCourses';
+import useUserPlanner from 'utils/apiHooks/useUserPlanner';
 import openNotification from 'utils/openNotification';
 import PageTemplate from 'components/PageTemplate';
 import Spinner from 'components/Spinner';
@@ -74,17 +75,11 @@ const TermPlanner = () => {
   const plannerPicRef = useRef<HTMLDivElement>(null);
 
   // Planer obj
-  const plannerQuery = useQuery({
-    queryKey: ['planner'],
-    queryFn: () => getUserPlanner(token)
-  });
+  const plannerQuery = useUserPlanner();
   const planner: PlannerResponse = plannerQuery.data ?? badPlanner;
 
   // The user's actual courses obj???????
-  const coursesQuery = useQuery({
-    queryKey: ['courses'],
-    queryFn: () => getUserCourses(token)
-  });
+  const coursesQuery = useUserCourses();
   const courses: CoursesResponse = coursesQuery.data ?? badCourses;
 
   const validateQuery = useQuery({

@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { LockFilled, UnlockFilled } from '@ant-design/icons';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from 'antd';
 import { useTheme } from 'styled-components';
 import { Course } from 'types/api';
@@ -8,7 +8,8 @@ import { CourseTime } from 'types/courses';
 import { Term } from 'types/planner';
 import { ValidateResponse } from 'types/userResponse';
 import { toggleLockTerm } from 'utils/api/plannerApi';
-import { getUserCourses, getUserPlanner } from 'utils/api/userApi';
+import useUserCourses from 'utils/apiHooks/useUserCourses';
+import useUserPlanner from 'utils/apiHooks/useUserPlanner';
 import { courseHasOffering } from 'utils/getAllCourseOfferings';
 import Spinner from 'components/Spinner';
 import useMediaQuery from 'hooks/useMediaQuery';
@@ -43,10 +44,7 @@ const TermBox = ({
   const theme = useTheme();
   const queryClient = useQueryClient();
 
-  const plannerQuery = useQuery({
-    queryKey: ['planner'],
-    queryFn: () => getUserPlanner(token)
-  });
+  const plannerQuery = useUserPlanner();
 
   const toggleLockTermMutation = useMutation({
     mutationFn: () => toggleLockTerm(token, year, term),
@@ -61,10 +59,7 @@ const TermBox = ({
     }
   });
 
-  const coursesQuery = useQuery({
-    queryKey: ['courses'],
-    queryFn: () => getUserCourses(token)
-  });
+  const coursesQuery = useUserCourses();
   const isSmall = useMediaQuery('(max-width: 1400px)');
 
   if (!coursesQuery.data || !plannerQuery.data) {
