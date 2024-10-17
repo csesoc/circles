@@ -2,10 +2,8 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { DeleteOutlined } from '@ant-design/icons';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Popconfirm, Tooltip, Typography } from 'antd';
-import { removeCourse } from 'utils/api/plannerApi';
-import useToken from 'hooks/useToken';
+import { useRemoveCourseMutation } from 'utils/apiHooks/user';
 import { addTab } from 'reducers/courseTabsSlice';
 import S from './styles';
 
@@ -17,28 +15,15 @@ type Props = {
 };
 
 const CourseCartCard = ({ code, title }: Props) => {
-  const token = useToken();
-
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+
+  const remove = useRemoveCourseMutation();
 
   const handleClick = () => {
     navigate('/course-selector');
     dispatch(addTab(code));
   };
-
-  const remove = useMutation({
-    mutationFn: (courseCode: string) => removeCourse(token, courseCode),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['courses']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['planner']
-      });
-    }
-  });
 
   return (
     <S.CourseCardWrapper>
