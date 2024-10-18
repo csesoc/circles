@@ -1,10 +1,8 @@
 import React from 'react';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Tooltip } from 'antd';
-import { addToUnplanned, removeCourse } from 'utils/api/plannerApi';
+import { useAddToUnplannedMutation, useRemoveCourseMutation } from 'utils/apiHooks/user';
 import useSettings from 'hooks/useSettings';
-import useToken from 'hooks/useToken';
 import S from './styles';
 
 type Props = {
@@ -14,26 +12,15 @@ type Props = {
 };
 
 const QuickAddCartButton = ({ courseCode, runMutate, planned }: Props) => {
-  const token = useToken();
+  const removeCourseMutation = useRemoveCourseMutation();
+  const addToUnplannedMutation = useAddToUnplannedMutation();
 
-  const handleMutation = planned
-    ? (code: string) => removeCourse(token, code)
-    : (code: string) => addToUnplanned(token, code);
+  const mutation = planned ? removeCourseMutation : addToUnplannedMutation;
 
   const { theme } = useSettings();
   const iconStyles = {
     color: theme === 'light' ? '#000' : '#fff'
   };
-  const queryClient = useQueryClient();
-  const mutation = useMutation({
-    mutationFn: handleMutation,
-    onMutate: () => planned,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['planner']
-      });
-    }
-  });
 
   const handleClick = (e: React.MouseEvent<HTMLElement>) => {
     e.stopPropagation();

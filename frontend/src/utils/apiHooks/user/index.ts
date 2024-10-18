@@ -1,6 +1,10 @@
-import useRemoveCourseMutation from './useRemoveCourseMutation';
-import useUserCourses from './useUserCourses';
-import useUserDegree from './useUserDegree';
-import useUserPlanner from './useUserPlanner';
+import { useAddToUnplannedMutation, useRemoveCourseMutation } from './mutations';
+import { useUserCourses, useUserDegree, useUserPlanner } from './queries';
 
-export { useRemoveCourseMutation, useUserCourses, useUserDegree, useUserPlanner };
+export {
+  useAddToUnplannedMutation,
+  useRemoveCourseMutation,
+  useUserCourses,
+  useUserDegree,
+  useUserPlanner
+};

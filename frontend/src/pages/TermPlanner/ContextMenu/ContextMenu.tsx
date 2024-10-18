@@ -13,7 +13,8 @@ import {
 } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { UnscheduleCourse } from 'types/planner';
-import { removeCourse, toggleIgnoreFromProgression, unscheduleCourse } from 'utils/api/plannerApi';
+import { toggleIgnoreFromProgression, unscheduleCourse } from 'utils/api/plannerApi';
+import { useRemoveCourseMutation } from 'utils/apiHooks/user';
 import EditMarkModal from 'components/EditMarkModal';
 import useToken from 'hooks/useToken';
 import { addTab } from 'reducers/courseTabsSlice';
@@ -48,20 +49,9 @@ const ContextMenu = ({ code, plannedFor, ignoreFromProgression }: Props) => {
       });
     }
   });
-  const handleDelete = useMutation({
-    mutationFn: (courseCode: string) => removeCourse(token, courseCode),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['planner']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['courses']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['validate']
-      });
-    }
-  });
+
+  const handleDelete = useRemoveCourseMutation();
+
   const handleInfo = () => {
     navigate('/course-selector');
     dispatch(addTab(code));

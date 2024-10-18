@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import type { MenuProps } from 'antd';
 import { CourseUnitsStructure, MenuDataStructure, MenuDataSubgroup } from 'types/courseMenu';
 import { CourseValidation } from 'types/courses';
 import { ProgramStructure } from 'types/structure';
 import { CoursesResponse, DegreeResponse } from 'types/userResponse';
 import { getAllUnlockedCourses } from 'utils/api/coursesApi';
-import { addToUnplanned, removeCourse } from 'utils/api/plannerApi';
 import { getProgramStructure } from 'utils/api/programsApi';
+import { useAddToUnplannedMutation, useRemoveCourseMutation } from 'utils/apiHooks/user';
 import { LoadingCourseMenu } from 'components/LoadingSkeleton';
 import { MAX_COURSES_OVERFLOW } from 'config/constants';
 import useSettings from 'hooks/useSettings';
@@ -40,8 +40,6 @@ const SubgroupTitle = ({ title, currUOC, totalUOC }: SubgroupTitleProps) => (
 const CourseMenu = ({ courses, degree }: CourseMenuProps) => {
   const token = useToken();
 
-  const inPlanner = (courseId: string) => courses && !!courses[courseId];
-
   const structureQuery = useQuery({
     queryKey: ['structure', degree],
     queryFn: () => getProgramStructure(degree!.programCode, degree!.specs),
@@ -53,15 +51,16 @@ const CourseMenu = ({ courses, degree }: CourseMenuProps) => {
     queryFn: () => getAllUnlockedCourses(token)
   });
 
-  const queryClient = useQueryClient();
-  const courseMutation = useMutation({
-    mutationFn: async (courseId: string) =>
-      inPlanner(courseId) ? removeCourse(token, courseId) : addToUnplanned(token, courseId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['courses'] });
-      await queryClient.invalidateQueries({ queryKey: ['planner'] });
-    }
-  });
+  const removeCourseMutation = useRemoveCourseMutation();
+  const addToUnplannedMutation = useAddToUnplannedMutation();
+  const removeCourse = removeCourseMutation.mutate;
+  const addToUnplanned = addToUnplannedMutation.mutate;
+
+  const courseMutation = useCallback(
+    (courseId: string) =>
+      courses && !!courses[courseId] ? removeCourse(courseId) : addToUnplanned(courseId),
+    [courses, removeCourse, addToUnplanned]
+  );
 
   const dispatch = useDispatch();
   const [menuData, setMenuData] = useState<MenuDataStructure>({});
@@ -179,7 +178,7 @@ const CourseMenu = ({ courses, degree }: CourseMenuProps) => {
                           courseCode={course.courseCode}
                           title={course.title}
                           selected={courses[course.courseCode] !== undefined}
-                          runMutate={courseMutation.mutate}
+                          runMutate={courseMutation}
                           accurate={course.accuracy}
                           unlocked={course.unlocked}
                         />
@@ -200,7 +199,7 @@ const CourseMenu = ({ courses, degree }: CourseMenuProps) => {
     defaultOpenKeys,
     menuData,
     pageLoaded,
-    courseMutation.mutate,
+    courseMutation,
     showLockedCourses,
     structureQuery.data,
     structureQuery.isSuccess
