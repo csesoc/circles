@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal } from 'antd';
-import { useResetDegreeMutation } from 'utils/apiHooks/user/mutations';
+import { useResetDegreeMutation } from 'utils/apiHooks/user';
 import { useAppDispatch } from 'hooks';
 import useToken from 'hooks/useToken';
 import { resetTabs } from 'reducers/courseTabsSlice';

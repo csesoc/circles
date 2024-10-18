@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { CourseMark } from 'types/api';
+import { CourseTime } from 'types/courses';
 import { PlannedToTerm, UnPlannedToTerm, UnscheduleCourse } from 'types/planner';
 import { ValidatesResponse } from 'types/userResponse';
 import { withAuthorization } from './authApi';
@@ -101,10 +102,11 @@ export const updateCourseMark = async (token: string, courseMark: CourseMark) =>
   }
 };
 
-export const toggleLockTerm = async (token: string, year: string, term: string) => {
+// TODO: dont steal the CourseTime type here... unify all yearterm representations
+export const toggleLockTerm = async (token: string, termyear: CourseTime) => {
   await axios.post(
     '/planner/toggleTermLocked',
     {},
-    { params: { termyear: `${year}${term}` }, headers: withAuthorization(token) }
+    { params: { termyear: `${termyear.year}${termyear.term}` }, headers: withAuthorization(token) }
   );
 };
