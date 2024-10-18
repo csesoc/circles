@@ -2,7 +2,6 @@ import {
   QueryClient,
   useMutation,
   UseMutationOptions,
-  UseMutationResult,
   useQuery,
   useQueryClient,
   UseQueryOptions
@@ -82,7 +81,9 @@ export function createUserMutationHook<
               queryKey: ['user', userId]
             });
 
+            // TODO-olli: figure out which one we want to do...
             queryClient.clear();
+            queryClient.resetQueries();
           } else {
             invalidationKeySuffixes.forEach((key) =>
               queryClient.invalidateQueries({

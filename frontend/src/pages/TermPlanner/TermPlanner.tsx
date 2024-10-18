@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { OnDragEndResponder, OnDragStartResponder } from 'react-beautiful-dnd';
-import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from 'antd';
 import { Course } from 'types/api';
 import { PlannedToTerm, Term, UnPlannedToTerm, UnscheduleCourse } from 'types/planner';
@@ -14,13 +14,14 @@ import {
   ValidatesResponse
 } from 'types/userResponse';
 import { getCourseForYearsInfo } from 'utils/api/coursesApi';
+import { validateTermPlanner } from 'utils/api/plannerApi';
 import {
-  setPlannedCourseToTerm,
-  setUnplannedCourseToTerm,
-  unscheduleCourse,
-  validateTermPlanner
-} from 'utils/api/plannerApi';
-import { useUserCourses, useUserPlanner } from 'utils/apiHooks/user';
+  useSetPlannedCourseToTermMutation,
+  useSetUnplannedCourseToTermMutation,
+  useUnscheduleCourseMutation,
+  useUserCourses,
+  useUserPlanner
+} from 'utils/apiHooks/user';
 import openNotification from 'utils/openNotification';
 import PageTemplate from 'components/PageTemplate';
 import Spinner from 'components/Spinner';
@@ -118,34 +119,21 @@ const TermPlanner = () => {
   );
 
   // Mutations
-  const setPlannedCourseToTermMutation = useMutation({
-    mutationFn: (data: PlannedToTerm) => setPlannedCourseToTerm(token, data),
-    onMutate: (data) => {
-      queryClient.setQueryData(['planner'], (prev: PlannerResponse | undefined) => {
-        if (!prev) return badPlanner;
-        const curr: PlannerResponse = structuredClone(prev);
-        curr.years[data.srcRow][data.srcTerm].splice(
-          curr.years[data.srcRow][data.srcTerm].indexOf(data.courseCode),
-          1
-        );
-        curr.years[data.destRow][data.destTerm].splice(data.destIndex, 0, data.courseCode);
-        return curr;
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['planner']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['courses']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['validate']
-      });
-    },
-    onError: (err) => {
-      // eslint-disable-next-line no-console
-      console.error('Error at setPlannedCourseToTermMutation: ', err);
+  const setPlannedCourseToTermMutation = useSetPlannedCourseToTermMutation({
+    mutationOptions: {
+      onMutate: (data) => {
+        // TODO-olli
+        queryClient.setQueryData(['planner'], (prev: PlannerResponse | undefined) => {
+          if (!prev) return badPlanner;
+          const curr: PlannerResponse = structuredClone(prev);
+          curr.years[data.srcRow][data.srcTerm].splice(
+            curr.years[data.srcRow][data.srcTerm].indexOf(data.courseCode),
+            1
+          );
+          curr.years[data.destRow][data.destTerm].splice(data.destIndex, 0, data.courseCode);
+          return curr;
+        });
+      }
     }
   });
 
@@ -153,31 +141,18 @@ const TermPlanner = () => {
     setPlannedCourseToTermMutation.mutate(data);
   };
 
-  const setUnplannedCourseToTermMutation = useMutation({
-    mutationFn: (data: UnPlannedToTerm) => setUnplannedCourseToTerm(token, data),
-    onMutate: (data) => {
-      queryClient.setQueryData(['planner'], (prev: PlannerResponse | undefined) => {
-        if (!prev) return badPlanner;
-        const curr: PlannerResponse = structuredClone(prev);
-        curr.unplanned.splice(curr.unplanned.indexOf(data.courseCode), 1);
-        curr.years[data.destRow][data.destTerm].splice(data.destIndex, 0, data.courseCode);
-        return curr;
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['planner']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['courses']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['validate']
-      });
-    },
-    onError: (err) => {
-      // eslint-disable-next-line no-console
-      console.error('Error at setUnplannedCourseToTermMutation: ', err);
+  const setUnplannedCourseToTermMutation = useSetUnplannedCourseToTermMutation({
+    mutationOptions: {
+      onMutate: (data) => {
+        // TODO-olli
+        queryClient.setQueryData(['planner'], (prev: PlannerResponse | undefined) => {
+          if (!prev) return badPlanner;
+          const curr: PlannerResponse = structuredClone(prev);
+          curr.unplanned.splice(curr.unplanned.indexOf(data.courseCode), 1);
+          curr.years[data.destRow][data.destTerm].splice(data.destIndex, 0, data.courseCode);
+          return curr;
+        });
+      }
     }
   });
 
@@ -185,34 +160,21 @@ const TermPlanner = () => {
     setUnplannedCourseToTermMutation.mutate(data);
   };
 
-  const unscheduleCourseMutation = useMutation({
-    mutationFn: (data: UnscheduleCourse) => unscheduleCourse(token, data),
-    onMutate: (data) => {
-      queryClient.setQueryData(['planner'], (prev: PlannerResponse | undefined) => {
-        if (!prev) return badPlanner;
-        const curr: PlannerResponse = structuredClone(prev);
-        curr.years[data.srcRow as number][data.srcTerm as string].splice(
-          curr.years[data.srcRow as number][data.srcTerm as string].indexOf(data.courseCode),
-          1
-        );
-        curr.unplanned.push(data.courseCode);
-        return curr;
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['planner']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['courses']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['validate']
-      });
-    },
-    onError: (err) => {
-      // eslint-disable-next-line no-console
-      console.error('Error at unscheduleCourseMutation: ', err);
+  const unscheduleCourseMutation = useUnscheduleCourseMutation({
+    mutationOptions: {
+      onMutate: (data) => {
+        // TODO-olli: remove from here...
+        queryClient.setQueryData(['planner'], (prev: PlannerResponse | undefined) => {
+          if (!prev) return badPlanner;
+          const curr: PlannerResponse = structuredClone(prev);
+          curr.years[data.srcRow as number][data.srcTerm as string].splice(
+            curr.years[data.srcRow as number][data.srcTerm as string].indexOf(data.courseCode),
+            1
+          );
+          curr.unplanned.push(data.courseCode);
+          return curr;
+        });
+      }
     }
   });
 

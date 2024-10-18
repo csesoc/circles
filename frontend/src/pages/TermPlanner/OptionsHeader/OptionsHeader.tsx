@@ -9,13 +9,11 @@ import {
   UploadOutlined,
   WarningFilled
 } from '@ant-design/icons';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Tippy from '@tippyjs/react';
 import { Popconfirm, Switch, Tooltip } from 'antd';
-import { unscheduleAll } from 'utils/api/plannerApi';
 import { useUserPlanner } from 'utils/apiHooks/user';
+import { useUnscheduleAllMutation } from 'utils/apiHooks/user/mutations';
 import useSettings from 'hooks/useSettings';
-import useToken from 'hooks/useToken';
 import ExportPlannerMenu from '../ExportPlannerMenu';
 import HelpMenu from '../HelpMenu/HelpMenu';
 import ImportPlannerMenu from '../ImportPlannerMenu';
@@ -27,9 +25,6 @@ import 'tippy.js/dist/tippy.css';
 import 'tippy.js/themes/light.css';
 
 const OptionsHeader = () => {
-  const token = useToken();
-  const queryClient = useQueryClient();
-
   const plannerQuery = useUserPlanner();
   const planner = plannerQuery.data;
 
@@ -47,24 +42,7 @@ const OptionsHeader = () => {
     color: theme === 'light' ? '#323739' : '#f1f1f1'
   };
 
-  const unscheduleAllMutation = useMutation({
-    mutationFn: () => unscheduleAll(token),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['planner']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['courses']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['validate']
-      });
-    },
-    onError: (err) => {
-      // eslint-disable-next-line no-console
-      console.error('Error at unscheduleAllMutation: ', err);
-    }
-  });
+  const unscheduleAllMutation = useUnscheduleAllMutation();
 
   const handleUnscheduleAll = async () => {
     unscheduleAllMutation.mutate();

@@ -1,31 +1,14 @@
 import React, { useRef, useState } from 'react';
 import { LoadingOutlined } from '@ant-design/icons';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Spin } from 'antd';
-import { importUser as importUserApi } from 'utils/api/userApi';
+import { useImportUserMutation } from 'utils/apiHooks/user';
 import { importUser, UserJson } from 'utils/export';
 import openNotification from 'utils/openNotification';
-import useToken from 'hooks/useToken';
 import CS from '../common/styles';
 import S from './styles';
 
 const ImportPlannerMenu = () => {
-  const token = useToken();
-  const queryClient = useQueryClient();
-
-  const importUserMutation = useMutation({
-    mutationFn: (user: UserJson) => importUserApi(token, user),
-    onSuccess: () => {
-      queryClient.resetQueries();
-    },
-    onError: () => {
-      openNotification({
-        type: 'error',
-        message: 'Import failed',
-        description: 'An error occurred when importing the planner'
-      });
-    }
-  });
+  const importUserMutation = useImportUserMutation();
 
   const handleImport = (user: UserJson) => {
     importUserMutation.mutate(user);
