@@ -1,6 +1,7 @@
 import {
   useMutation,
   UseMutationOptions,
+  UseMutationResult,
   useQuery,
   useQueryClient,
   UseQueryOptions
@@ -48,17 +49,17 @@ export type UserMutationHookOptions<FArg, FRet> = {
   mutationOptions?: Omit<UseMutationOptions<FRet, Error, FArg, unknown>, 'mutationFn'>;
 };
 
-export function createUserMutationHook<const Keys extends string[][], const FArg, const FRet>(
+export function createUserMutationHook<
+  const Keys extends true | string[][], // true signifies you want a full invalidate and clear
+  const FRet,
+  const FArg = void
+>(
   invalidationKeySuffixes: Keys,
   fn: (token: string, data: FArg) => Promise<FRet>,
   baseOptions?: CreateUserMutationOptions<FArg, FRet>
 ) {
   return (options?: UserMutationHookOptions<FArg, FRet>) => {
     const { userId, token } = useIdentity(options?.allowUnsetToken === true) ?? {};
-
-    // const lol: MutationFunction<FRet, FData> = async (data: FData) =>
-    //   token !== undefined ? fn(token, data) : Promise.reject(new Error('No token'));
-    // const lol = (data: FData) => fn(token!, data);
 
     const queryClient = useQueryClient();
     const mutation = useMutation({
@@ -69,11 +70,19 @@ export function createUserMutationHook<const Keys extends string[][], const FArg
       ...options?.mutationOptions,
 
       onSuccess: (data, variables, context) => {
-        invalidationKeySuffixes.forEach((key) => {
+        if (invalidationKeySuffixes === true) {
           queryClient.invalidateQueries({
-            queryKey: ['user', userId].concat(key)
+            queryKey: ['user', userId]
           });
-        });
+
+          queryClient.clear();
+        } else {
+          invalidationKeySuffixes.forEach((key) =>
+            queryClient.invalidateQueries({
+              queryKey: ['user', userId].concat(key)
+            })
+          );
+        }
 
         if (options?.mutationOptions?.onSuccess !== undefined) {
           options.mutationOptions.onSuccess(data, variables, context);

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { scroller } from 'react-scroll';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Button, Typography } from 'antd';
 import { DegreeWizardPayload } from 'types/degreeWizard';
 import { getSpecialisationTypes } from 'utils/api/specsApi';
-import { getUserIsSetup, resetUserDegree } from 'utils/api/userApi';
+import { getUserIsSetup } from 'utils/api/userApi';
+import { useResetDegreeMutation } from 'utils/apiHooks/user/mutations';
 import openNotification from 'utils/openNotification';
 import MigrationModal from 'components/MigrationModal';
 import PageTemplate from 'components/PageTemplate';
@@ -49,23 +50,7 @@ const DegreeWizard = () => {
   const specs = specTypesQuery.data ?? DEFAULT_SPEC_TYPES;
   const stepList = ['year', 'degree'].concat(specs).concat(['start browsing']);
 
-  const queryClient = useQueryClient();
-
-  const resetDegree = useMutation({
-    mutationFn: () => resetUserDegree(token),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['degree']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['courses']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['planner']
-      });
-      queryClient.clear();
-    }
-  });
+  const resetDegree = useResetDegreeMutation();
 
   useEffect(() => {
     openNotification({

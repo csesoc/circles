@@ -1,7 +1,6 @@
 import React from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Modal } from 'antd';
-import { resetUserDegree } from 'utils/api/userApi';
+import { useResetDegreeMutation } from 'utils/apiHooks/user/mutations';
 import { useAppDispatch } from 'hooks';
 import useToken from 'hooks/useToken';
 import { resetTabs } from 'reducers/courseTabsSlice';
@@ -14,26 +13,13 @@ type Props = {
 
 // has no internal "open" state since it becomes difficult to juggle with external buttons
 const ResetModal = ({ open, onOk, onCancel }: Props) => {
-  const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
   const token = useToken({ allowUnset: true }); // NOTE: must allow unset since this is used in ErrorBoundary itself
 
-  const resetDegreeMutation = useMutation({
-    mutationFn: (definedToken: string) => resetUserDegree(definedToken),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['degree']
-      });
-    },
-    onError: (err) => {
-      // eslint-disable-next-line no-console
-      console.error('Error at resetDegreeMutation: ', err);
-    }
-  });
-
+  const resetDegreeMutation = useResetDegreeMutation({ allowUnsetToken: true });
   const handleResetDegree = () => {
     if (token !== undefined) {
-      resetDegreeMutation.mutate(token);
+      resetDegreeMutation.mutate();
     }
   };
 
