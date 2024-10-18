@@ -1,4 +1,5 @@
 import {
+  QueryClient,
   useMutation,
   UseMutationOptions,
   UseMutationResult,
@@ -11,6 +12,7 @@ import useIdentity from 'hooks/useIdentity';
 export type CreateUserQueryOptions = Omit<UseQueryOptions, 'queryKey' | 'queryFn' | 'enabled'>;
 export type UserQueryHookOptions = {
   allowUnsetToken?: boolean;
+  queryClient?: QueryClient;
   queryOptions?: Omit<UseQueryOptions, 'queryKey' | 'queryFn'>;
 };
 
@@ -26,15 +28,18 @@ export function createUserQueryHook<
   return (options?: UserQueryHookOptions, ...args: FArgs) => {
     const { userId, token } = useIdentity(options?.allowUnsetToken === true) ?? {};
 
-    const query = useQuery({
-      queryKey: ['user', userId].concat(keySuffix),
-      queryFn: () => fn(token!, ...args),
+    const query = useQuery(
+      {
+        queryKey: ['user', userId].concat(keySuffix),
+        queryFn: () => fn(token!, ...args),
 
-      // ...baseOptions,  // TODO-olli
-      // ...options?.queryOptions,
+        // ...baseOptions,  // TODO-olli
+        // ...options?.queryOptions,
 
-      enabled: options?.queryOptions?.enabled && token !== undefined
-    });
+        enabled: options?.queryOptions?.enabled && token !== undefined
+      },
+      options?.queryClient
+    );
 
     return query;
   };
@@ -46,6 +51,7 @@ export type CreateUserMutationOptions<FArg, FRet> = Omit<
 >;
 export type UserMutationHookOptions<FArg, FRet> = {
   allowUnsetToken?: boolean;
+  queryClient?: QueryClient;
   mutationOptions?: Omit<UseMutationOptions<FRet, Error, FArg, unknown>, 'mutationFn'>;
 };
 
@@ -62,35 +68,38 @@ export function createUserMutationHook<
     const { userId, token } = useIdentity(options?.allowUnsetToken === true) ?? {};
 
     const queryClient = useQueryClient();
-    const mutation = useMutation({
-      mutationFn: async (data: FArg) =>
-        token !== undefined ? fn(token, data) : Promise.reject(new Error('No token')),
+    const mutation = useMutation(
+      {
+        mutationFn: async (data: FArg) =>
+          token !== undefined ? fn(token, data) : Promise.reject(new Error('No token')),
 
-      ...baseOptions,
-      ...options?.mutationOptions,
+        ...baseOptions,
+        ...options?.mutationOptions,
 
-      onSuccess: (data, variables, context) => {
-        if (invalidationKeySuffixes === true) {
-          queryClient.invalidateQueries({
-            queryKey: ['user', userId]
-          });
-
-          queryClient.clear();
-        } else {
-          invalidationKeySuffixes.forEach((key) =>
+        onSuccess: (data, variables, context) => {
+          if (invalidationKeySuffixes === true) {
             queryClient.invalidateQueries({
-              queryKey: ['user', userId].concat(key)
-            })
-          );
-        }
+              queryKey: ['user', userId]
+            });
 
-        if (options?.mutationOptions?.onSuccess !== undefined) {
-          options.mutationOptions.onSuccess(data, variables, context);
-        } else {
-          baseOptions?.onSuccess?.(data, variables, context);
+            queryClient.clear();
+          } else {
+            invalidationKeySuffixes.forEach((key) =>
+              queryClient.invalidateQueries({
+                queryKey: ['user', userId].concat(key)
+              })
+            );
+          }
+
+          if (options?.mutationOptions?.onSuccess !== undefined) {
+            options.mutationOptions.onSuccess(data, variables, context);
+          } else {
+            baseOptions?.onSuccess?.(data, variables, context);
+          }
         }
-      }
-    });
+      },
+      options?.queryClient
+    );
 
     return mutation;
   };

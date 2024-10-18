@@ -1,9 +1,12 @@
 import {
   useAddToUnplannedMutation,
+  useHideYearMutation,
   useRemoveAllCoursesMutation,
   useRemoveCourseMutation,
   useResetDegreeMutation,
+  useShowYearsMutation,
   useToggleLockTermMutation,
+  useToggleMarksMutation,
   useToggleSummerTermMutation,
   useUpdateDegreeLengthMutation,
   useUpdateMarkMutation,
@@ -13,10 +16,13 @@ import { useUserCourses, useUserDegree, useUserPlanner } from './queries';
 
 export {
   useAddToUnplannedMutation,
+  useHideYearMutation,
   useRemoveAllCoursesMutation,
   useRemoveCourseMutation,
   useResetDegreeMutation,
+  useShowYearsMutation,
   useToggleLockTermMutation,
+  useToggleMarksMutation,
   useToggleSummerTermMutation,
   useUpdateDegreeLengthMutation,
   useUpdateMarkMutation,

@@ -1,12 +1,12 @@
 import { useCallback } from 'react';
-import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
 import { SettingsResponse } from 'types/userResponse';
+import { getUserSettings } from 'utils/api/userApi';
 import {
-  getUserSettings,
-  hideYear as hideYearApi,
-  showYears as showYearsApi,
-  toggleShowMarks as toggleShowMarksApi
-} from 'utils/api/userApi';
+  useHideYearMutation,
+  useShowYearsMutation,
+  useToggleMarksMutation
+} from 'utils/apiHooks/user';
 import { useAppDispatch, useAppSelector } from 'hooks';
 import {
   toggleLockedCourses as toggleLocked,
@@ -54,48 +54,20 @@ function useSettings(queryClient?: QueryClient): Settings {
   );
   const userSettings = settingsQuery.data ?? defaultUserSettings;
 
-  const showMarksMutation = useMutation(
-    {
-      mutationFn: () => (token ? toggleShowMarksApi(token) : Promise.reject(new Error('No token'))),
-      onSuccess: () => {
-        realQueryClient.invalidateQueries({ queryKey: ['settings'] });
-      },
-      onError: (error) => {
-        // eslint-disable-next-line no-console
-        console.error('Error toggling show marks: ', error);
-      }
-    },
-    queryClient
-  );
+  const showMarksMutation = useToggleMarksMutation({
+    allowUnsetToken: true,
+    queryClient: realQueryClient
+  });
 
-  const hideYearMutation = useMutation(
-    {
-      mutationFn: (yearIndex: number) =>
-        token ? hideYearApi(token, yearIndex) : Promise.reject(new Error('No token')),
-      onSuccess: () => {
-        realQueryClient.invalidateQueries({ queryKey: ['settings'] });
-      },
-      onError: (error) => {
-        // eslint-disable-next-line no-console
-        console.error('Error hiding year: ', error);
-      }
-    },
-    queryClient
-  );
+  const hideYearMutation = useHideYearMutation({
+    allowUnsetToken: true,
+    queryClient: realQueryClient
+  });
 
-  const showYearsMutation = useMutation(
-    {
-      mutationFn: () => (token ? showYearsApi(token) : Promise.reject(new Error('No token'))),
-      onSuccess: () => {
-        realQueryClient.invalidateQueries({ queryKey: ['settings'] });
-      },
-      onError: (error) => {
-        // eslint-disable-next-line no-console
-        console.error('Error showing years: ', error);
-      }
-    },
-    queryClient
-  );
+  const showYearsMutation = useShowYearsMutation({
+    allowUnsetToken: true,
+    queryClient: realQueryClient
+  });
 
   const mutateTheme = useCallback((theme: Theme) => dispatch(toggleTheme(theme)), [dispatch]);
   const toggleLockedCourses = useCallback(() => dispatch(toggleLocked()), [dispatch]);
