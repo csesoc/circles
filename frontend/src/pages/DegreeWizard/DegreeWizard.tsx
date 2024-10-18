@@ -6,7 +6,7 @@ import { Button, Typography } from 'antd';
 import { DegreeWizardPayload } from 'types/degreeWizard';
 import { getSpecialisationTypes } from 'utils/api/specsApi';
 import { getUserIsSetup } from 'utils/api/userApi';
-import { useResetDegreeMutation } from 'utils/apiHooks/user/mutations';
+import { useResetDegreeMutation } from 'utils/apiHooks/user';
 import openNotification from 'utils/openNotification';
 import MigrationModal from 'components/MigrationModal';
 import PageTemplate from 'components/PageTemplate';

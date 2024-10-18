@@ -11,8 +11,7 @@ import {
 } from '@ant-design/icons';
 import Tippy from '@tippyjs/react';
 import { Popconfirm, Switch, Tooltip } from 'antd';
-import { useUserPlanner } from 'utils/apiHooks/user';
-import { useUnscheduleAllMutation } from 'utils/apiHooks/user/mutations';
+import { useUnscheduleAllMutation, useUserPlanner } from 'utils/apiHooks/user';
 import useSettings from 'hooks/useSettings';
 import ExportPlannerMenu from '../ExportPlannerMenu';
 import HelpMenu from '../HelpMenu/HelpMenu';
