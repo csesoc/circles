@@ -2,7 +2,8 @@
 from typing import Annotated, Dict, Optional, Tuple, Union, cast
 from secrets import token_hex, token_urlsafe
 from time import time
-from fastapi import APIRouter, Cookie, HTTPException, Response, Security
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, Security
+from fastapi_limiter.depends import RateLimiter # type: ignore
 from pydantic import BaseModel
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
 
@@ -101,7 +102,7 @@ def _try_get_session_info_for_logout(session_token: SessionToken, refresh_token:
 
 
 
-@router.post('/guest_login')
+@router.post('/guest_login', dependencies=[Depends(RateLimiter(times=1, hours=1))])
 def create_guest_session(res: Response) -> IdentityPayload:
     # create new login session for user in db, generating new tokens
     uid = insert_new_guest_user()

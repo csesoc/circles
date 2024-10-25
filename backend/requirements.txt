@@ -10,6 +10,7 @@ click==8.1.7
 cryptography==42.0.7
 dnspython==2.6.1
 fastapi==0.110.2
+fastapi_limiter==0.1.6
 fuzzywuzzy==0.18.0
 h11==0.14.0
 hypothesis==6.61.0

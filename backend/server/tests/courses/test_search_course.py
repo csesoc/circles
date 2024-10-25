@@ -2,7 +2,7 @@ import json
 
 import requests
 
-from server.tests.user.utility import get_token, get_token_headers
+from server.tests.user.utility import clear, get_token, get_token_headers
 
 with open("./algorithms/tests/exampleUsers.json", encoding="utf8") as f:
     USER = json.load(f)["user_degree_wizard"]
@@ -10,6 +10,7 @@ f.close()
 
 
 def test_search_course():
+    clear()
     token = get_token()
     headers = get_token_headers(token)
     requests.post('http://127.0.0.1:8000/user/setupDegreeWizard', headers=headers, json=USER)
@@ -19,6 +20,7 @@ def test_search_course():
 
 
 def test_search_archives():
+    clear()
     token = get_token()
     headers = get_token_headers(token)
     requests.post('http://127.0.0.1:8000/user/setupDegreeWizard', headers=headers, json=USER)
@@ -28,6 +30,7 @@ def test_search_archives():
 
 
 def test_search_title():
+    clear()
     token = get_token()
     headers = get_token_headers(token)
     requests.post('http://127.0.0.1:8000/user/setupDegreeWizard', headers=headers, json=USER)
@@ -36,6 +39,7 @@ def test_search_title():
 
 
 def test_search_minor():
+    clear()
     token = get_token()
     headers = get_token_headers(token)
     requests.post('http://127.0.0.1:8000/user/setupDegreeWizard', headers=headers, json=USER)

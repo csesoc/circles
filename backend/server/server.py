@@ -3,14 +3,19 @@ Configure the FastAPI server
 """
 
 from contextlib import asynccontextmanager
+
+from fastapi_limiter import FastAPILimiter # type: ignore
+import redis
+import redis.asyncio
 from data.config import LIVE_YEAR
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from server.routers import auth, courses, followups, planner, programs, specialisations, user
+from server.db.redis.conn import sdb
 
 @asynccontextmanager
 async def on_setup_and_shutdown(_app: FastAPI):
-    # TODO-OLLI(pm): actually use these
+    await FastAPILimiter.init(redis.asyncio.Redis(**sdb.get_connection_kwargs()))
     print("\n\nstartup\n\n")
     yield
     print("\n\nshutdown\n\n")

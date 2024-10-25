@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { guestLogin as guestLoginRequest, initiateCSEAuth } from 'utils/api/authApi';
+import openNotification from 'utils/openNotification';
 import BackButton from 'assets/back.svg';
 import SplashArt from 'assets/splashart.svg';
 import PageTemplate from 'components/PageTemplate';
@@ -23,7 +24,18 @@ const Login = () => {
   // - quick api call before login, although this is probs BAD
   // -- can just check if a refresh token is given at the login routes
   const guestLogin = useCallback(async () => {
-    const res = await guestLoginRequest();
+    let res;
+    try {
+      res = await guestLoginRequest();
+    } catch (_) {
+      openNotification({
+        type: 'error',
+        message: "Can't log in",
+        description:
+          'If you attempted to continue as guest, you may have hit a timeout. Either log in with your zID or wait until the timeout has cleared. Otherwise, there may be an issue with your user.'
+      });
+      return;
+    }
 
     queryClient.clear();
     dispatch(updateIdentityWithAPIRes(res));
