@@ -2,6 +2,7 @@
 Configure the FastAPI server
 """
 
+import os
 from contextlib import asynccontextmanager
 from data.config import LIVE_YEAR
 from fastapi import FastAPI
@@ -55,6 +56,9 @@ app.include_router(user.router)
 app.include_router(followups.router)
 # TODO: hide this behind a feature flag?
 # app.include_router(ctf.router)
+if os.getenv("ENV") == "dev":
+    from server.routers import dev
+    app.include_router(dev.router)
 
 
 @app.get("/")

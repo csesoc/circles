@@ -107,6 +107,10 @@ const GuestButton = styled.button`
   margin: 20px;
   cursor: pointer;
   transition: all 0.3s;
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
   &:hover {
     ${({ theme }) =>
       theme.loginSplash &&

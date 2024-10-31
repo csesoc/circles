@@ -20,7 +20,7 @@ def clear():
     setup_redis_sessionsdb()
 
 def get_token():
-    return requests.post('http://127.0.0.1:8000/auth/guest_login', timeout=5000).json()["session_token"]
+    return requests.post('http://127.0.0.1:8000/dev/guest_login', timeout=5000).json()["session_token"]
 
 def get_token_headers(token: str):
     return {"Authorization": f"Bearer {token}"}

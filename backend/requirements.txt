@@ -12,6 +12,7 @@ dnspython==2.6.1
 fastapi==0.110.2
 fuzzywuzzy==0.18.0
 h11==0.14.0
+hiredis==3.0.0
 hypothesis==6.61.0
 idna==3.7
 immutabledict==4.2.0

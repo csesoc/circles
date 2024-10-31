@@ -70,6 +70,9 @@ def main() -> None:
 
     if env.in_production:
         backend_env["FORWARDED_ALLOWED_IPS"] = "*"
+        backend_env["ENV"] = "prod"
+    else:
+        backend_env["ENV"] = "dev"
 
     # mongodb - backend + mongodb
     mongo_username = env.get_variable("MONGODB_USERNAME", "name")

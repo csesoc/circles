@@ -11,7 +11,7 @@ from server.db.helpers.models import NotSetupUserStorage, GuestSessionInfoModel,
 from server.db.helpers.users import delete_user, insert_new_user
 
 from .utility.sessions.errors import ExpiredRefreshTokenError, ExpiredSessionTokenError, OldRefreshTokenError
-from .utility.sessions.interface import create_new_guest_token_pair, get_session_info_from_refresh_token, get_session_info_from_session_token, logout_session, setup_new_csesoc_session, create_new_csesoc_token_pair, setup_new_guest_session
+from .utility.sessions.interface import create_new_guest_token_pair, get_session_info_from_refresh_token, get_session_info_from_session_token, logout_session, setup_new_csesoc_session, create_new_csesoc_token_pair
 
 from .utility.sessions.middleware import HTTPBearer401, set_secure_cookie
 from .utility.oidc.requests import DecodedIDToken, exchange_and_validate, generate_oidc_auth_url, get_userinfo_and_validate, refresh_and_validate, revoke_token, validate_authorization_response
@@ -97,21 +97,6 @@ def _try_get_session_info_for_logout(session_token: SessionToken, refresh_token:
             pass
 
     return None
-
-
-
-
-@router.post('/guest_login')
-def create_guest_session(res: Response) -> IdentityPayload:
-    # create new login session for user in db, generating new tokens
-    uid = insert_new_guest_user()
-    new_session_token, session_expiry, new_refresh_token, refresh_expiry = setup_new_guest_session(uid)
-
-    # TODO-OLLI(pm): setting up proper logging
-
-    # set the cookies and return the identity
-    set_secure_cookie(res, REFRESH_TOKEN_COOKIE, new_refresh_token, refresh_expiry)
-    return IdentityPayload(session_token=new_session_token, exp=session_expiry, uid=uid)
 
 
 
