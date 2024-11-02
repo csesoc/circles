@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { OnDragEndResponder, OnDragStartResponder } from 'react-beautiful-dnd';
-import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { Badge } from 'antd';
 import { Course } from 'types/api';
 import { PlannedToTerm, Term, UnPlannedToTerm, UnscheduleCourse } from 'types/planner';
@@ -14,20 +14,19 @@ import {
   ValidatesResponse
 } from 'types/userResponse';
 import { getCourseForYearsInfo } from 'utils/api/coursesApi';
-import { validateTermPlanner } from 'utils/api/plannerApi';
 import {
   useSetPlannedCourseToTermMutation,
   useSetUnplannedCourseToTermMutation,
   useUnscheduleCourseMutation,
   useUserCourses,
-  useUserPlanner
+  useUserPlanner,
+  useUserTermValidations
 } from 'utils/apiHooks/user';
 import openNotification from 'utils/openNotification';
 import PageTemplate from 'components/PageTemplate';
 import Spinner from 'components/Spinner';
 import { LIVE_YEAR } from 'config/constants';
 import useSettings from 'hooks/useSettings';
-import useToken from 'hooks/useToken';
 import { GridItem } from './common/styles';
 import HideYearTooltip from './HideYearTooltip';
 import OptionsHeader from './OptionsHeader';
@@ -67,7 +66,6 @@ type CodeToCourseYearsMap = { [code: string]: { [year: number]: Course } };
 type YearToCoursesMap = { [year: number]: { [code: string]: Course } };
 
 const TermPlanner = () => {
-  const token = useToken();
   const [draggingCourse, setDraggingCourse] = useState('');
   const { hiddenYears } = useSettings();
 
@@ -82,10 +80,8 @@ const TermPlanner = () => {
   const coursesQuery = useUserCourses();
   const courses: CoursesResponse = coursesQuery.data ?? badCourses;
 
-  const validateQuery = useQuery({
-    queryKey: ['validate'],
-    queryFn: () => validateTermPlanner(token)
-  });
+  const validateQuery = useUserTermValidations();
+
   const validations: ValidatesResponse = validateQuery.data ?? badValidations;
 
   const validYears = [...Array(planner.years.length).keys()].map((y) => y + planner.startYear);

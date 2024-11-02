@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
-import { getUserIsSetup } from 'utils/api/userApi';
+import { useUserSetupState } from 'utils/apiHooks/user';
 import openNotification from 'utils/openNotification';
 import PageLoading from 'components/PageLoading';
 import { useAppSelector } from 'hooks';
@@ -19,11 +18,9 @@ const RequireToken = ({ needSetup }: Props) => {
     isPending,
     data: isSetup,
     error
-  } = useQuery({
-    queryKey: ['degree', 'isSetup'], // TODO-OLLI(pm): fix this key, including userId
-    queryFn: () => getUserIsSetup(token!),
-    enabled: token !== undefined,
-    refetchOnWindowFocus: 'always'
+  } = useUserSetupState({
+    allowUnsetToken: true,
+    queryOptions: { refetchOnWindowFocus: 'always' }
   });
   // TODO-OLLI(pm): multitab support is hard
 

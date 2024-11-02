@@ -19,7 +19,16 @@ import {
   useUpdateMarkMutation,
   useUpdateStartYearMutation
 } from './mutations';
-import { useUserCourses, useUserDegree, useUserPlanner } from './queries';
+import {
+  useUserAllUnlocked,
+  useUserCourses,
+  useUserCoursesUnlockedWhenTaken,
+  useUserDegree,
+  useUserPlanner,
+  useUserSettings,
+  useUserSetupState,
+  useUserTermValidations
+} from './queries';
 
 export {
   useAddToUnplannedMutation,
@@ -41,7 +50,12 @@ export {
   useUpdateDegreeLengthMutation,
   useUpdateMarkMutation,
   useUpdateStartYearMutation,
+  useUserAllUnlocked,
   useUserCourses,
+  useUserCoursesUnlockedWhenTaken,
   useUserDegree,
-  useUserPlanner
+  useUserPlanner,
+  useUserSettings,
+  useUserSetupState,
+  useUserTermValidations
 };

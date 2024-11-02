@@ -1,5 +1,6 @@
 import {
   QueryClient,
+  QueryKey,
   useMutation,
   UseMutationOptions,
   useQuery,
@@ -8,32 +9,41 @@ import {
 } from '@tanstack/react-query';
 import useIdentity from 'hooks/useIdentity';
 
-export type CreateUserQueryOptions = Omit<UseQueryOptions, 'queryKey' | 'queryFn' | 'enabled'>;
-export type UserQueryHookOptions = {
+// type KeyFnBase<FArgs extends unknown[]> = (...args: FArgs) => QueryKey;
+type UserQueryKey<Key extends QueryKey> = ['user', uid: string, ...Key];
+
+export type CreateUserQueryOptions<FRet, Key extends QueryKey> = Omit<
+  UseQueryOptions<FRet, Error, FRet, UserQueryKey<Key>>,
+  'queryKey' | 'queryFn' | 'enabled'
+>;
+export type UserQueryHookOptions<FRet, Key extends QueryKey> = {
   allowUnsetToken?: boolean;
   queryClient?: QueryClient;
-  queryOptions?: Omit<UseQueryOptions, 'queryKey' | 'queryFn'>;
+  queryOptions?: Omit<
+    UseQueryOptions<FRet, Error, FRet, UserQueryKey<Key>>,
+    'queryKey' | 'queryFn'
+  >;
 };
 
 export function createUserQueryHook<
-  const Key extends string[],
+  const Key extends QueryKey,
   const FArgs extends unknown[],
   const FRet
 >(
-  keySuffix: Key,
+  keySuffixFn: (...args: FArgs) => Key,
   fn: (token: string, ...args: FArgs) => Promise<FRet>,
-  baseOptions?: CreateUserQueryOptions
+  baseOptions?: CreateUserQueryOptions<FRet, Key>
 ) {
-  return (options?: UserQueryHookOptions, ...args: FArgs) => {
+  return (options?: UserQueryHookOptions<FRet, Key>, ...args: FArgs) => {
     const { userId, token } = useIdentity(options?.allowUnsetToken === true) ?? {};
 
     const query = useQuery(
       {
-        queryKey: ['user', userId].concat(keySuffix),
+        queryKey: ['user', userId!, ...keySuffixFn(...args)],
         queryFn: () => fn(token!, ...args),
 
-        // ...baseOptions,  // TODO-olli
-        // ...options?.queryOptions,
+        ...baseOptions,
+        ...options?.queryOptions,
 
         enabled: options?.queryOptions?.enabled && token !== undefined
       },
@@ -48,6 +58,7 @@ export type CreateUserMutationOptions<FArg, FRet> = Omit<
   UseMutationOptions<FRet, Error, FArg, unknown>,
   'mutationFn'
 >;
+
 export type UserMutationHookOptions<FArg, FRet> = {
   allowUnsetToken?: boolean;
   queryClient?: QueryClient;
@@ -55,7 +66,7 @@ export type UserMutationHookOptions<FArg, FRet> = {
 };
 
 export function createUserMutationHook<
-  const Keys extends true | string[][], // true signifies you want a full invalidate and clear
+  const Keys extends true | QueryKey[], // true signifies you want a full invalidate and clear
   const FRet,
   const FArg = void
 >(
@@ -82,12 +93,11 @@ export function createUserMutationHook<
             });
 
             // TODO-olli: figure out which one we want to do...
-            queryClient.clear();
-            queryClient.resetQueries();
+            // queryClient.resetQueries();
           } else {
             invalidationKeySuffixes.forEach((key) =>
               queryClient.invalidateQueries({
-                queryKey: ['user', userId].concat(key)
+                queryKey: ['user', userId, ...key]
               })
             );
           }
@@ -103,5 +113,45 @@ export function createUserMutationHook<
     );
 
     return mutation;
+  };
+}
+
+type StaticQueryKey<Key extends QueryKey> = ['static', ...Key];
+
+export type CreateStaticQueryOptions<FRet, Key extends QueryKey> = Omit<
+  UseQueryOptions<FRet, Error, FRet, StaticQueryKey<Key>>,
+  'queryKey' | 'queryFn'
+>;
+export type StaticQueryHookOptions<FRet, Key extends QueryKey> = {
+  allowUnsetToken?: boolean;
+  queryClient?: QueryClient;
+  queryOptions?: Omit<
+    UseQueryOptions<FRet, Error, FRet, StaticQueryKey<Key>>,
+    'queryKey' | 'queryFn'
+  >;
+};
+
+export function createStaticQueryHook<
+  const Key extends QueryKey,
+  const FArgs extends unknown[],
+  const FRet
+>(
+  keySuffixFn: (...args: FArgs) => Key,
+  fn: (...args: FArgs) => Promise<FRet>,
+  baseOptions?: CreateStaticQueryOptions<FRet, Key>
+) {
+  return (options?: StaticQueryHookOptions<FRet, Key>, ...args: FArgs) => {
+    const query = useQuery(
+      {
+        queryKey: ['static', ...keySuffixFn(...args)],
+        queryFn: () => fn(...args),
+
+        ...baseOptions,
+        ...options?.queryOptions
+      },
+      options?.queryClient
+    );
+
+    return query;
   };
 }

@@ -1,11 +1,11 @@
 import { useCallback } from 'react';
-import { QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
+import { QueryClient, useQueryClient } from '@tanstack/react-query';
 import { SettingsResponse } from 'types/userResponse';
-import { getUserSettings } from 'utils/api/userApi';
 import {
   useHideYearMutation,
   useShowYearsMutation,
-  useToggleMarksMutation
+  useToggleMarksMutation,
+  useUserSettings
 } from 'utils/apiHooks/user';
 import { useAppDispatch, useAppSelector } from 'hooks';
 import {
@@ -13,7 +13,6 @@ import {
   toggleShowPastWarnings as togglePastWarnings,
   toggleTheme
 } from 'reducers/settingsSlice';
-import useToken from './useToken';
 
 type Theme = 'light' | 'dark';
 
@@ -41,17 +40,13 @@ function useSettings(queryClient?: QueryClient): Settings {
   const localSettings = useAppSelector((state) => state.settings);
   const dispatch = useAppDispatch();
 
-  const token = useToken({ allowUnset: true });
   const realQueryClient = useQueryClient(queryClient);
-  const settingsQuery = useQuery(
-    {
-      queryKey: ['settings'],
-      queryFn: () => getUserSettings(token!),
-      placeholderData: defaultUserSettings,
-      enabled: !!token
-    },
-    queryClient
-  );
+
+  const settingsQuery = useUserSettings({
+    allowUnsetToken: true,
+    queryClient: realQueryClient,
+    queryOptions: { placeholderData: defaultUserSettings }
+  });
   const userSettings = settingsQuery.data ?? defaultUserSettings;
 
   const showMarksMutation = useToggleMarksMutation({

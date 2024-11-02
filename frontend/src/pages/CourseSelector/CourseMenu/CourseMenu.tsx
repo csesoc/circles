@@ -6,13 +6,15 @@ import { CourseUnitsStructure, MenuDataStructure, MenuDataSubgroup } from 'types
 import { CourseValidation } from 'types/courses';
 import { ProgramStructure } from 'types/structure';
 import { CoursesResponse, DegreeResponse } from 'types/userResponse';
-import { getAllUnlockedCourses } from 'utils/api/coursesApi';
 import { getProgramStructure } from 'utils/api/programsApi';
-import { useAddToUnplannedMutation, useRemoveCourseMutation } from 'utils/apiHooks/user';
+import {
+  useAddToUnplannedMutation,
+  useRemoveCourseMutation,
+  useUserAllUnlocked
+} from 'utils/apiHooks/user';
 import { LoadingCourseMenu } from 'components/LoadingSkeleton';
 import { MAX_COURSES_OVERFLOW } from 'config/constants';
 import useSettings from 'hooks/useSettings';
-import useToken from 'hooks/useToken';
 import { addTab } from 'reducers/courseTabsSlice';
 import CourseMenuTitle from '../CourseMenuTitle';
 import S from './styles';
@@ -38,18 +40,13 @@ const SubgroupTitle = ({ title, currUOC, totalUOC }: SubgroupTitleProps) => (
 );
 
 const CourseMenu = ({ courses, degree }: CourseMenuProps) => {
-  const token = useToken();
-
   const structureQuery = useQuery({
     queryKey: ['structure', degree],
     queryFn: () => getProgramStructure(degree!.programCode, degree!.specs),
     enabled: !!degree
   });
 
-  const coursesStateQuery = useQuery({
-    queryKey: ['courses', 'coursesState'],
-    queryFn: () => getAllUnlockedCourses(token)
-  });
+  const coursesStateQuery = useUserAllUnlocked();
 
   const removeCourseMutation = useRemoveCourseMutation();
   const addToUnplannedMutation = useAddToUnplannedMutation();

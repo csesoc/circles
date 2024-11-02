@@ -5,13 +5,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Button, Typography } from 'antd';
 import { DegreeWizardPayload } from 'types/degreeWizard';
 import { getSpecialisationTypes } from 'utils/api/specsApi';
-import { getUserIsSetup } from 'utils/api/userApi';
-import { useResetDegreeMutation } from 'utils/apiHooks/user';
+import { useResetDegreeMutation, useUserSetupState } from 'utils/apiHooks/user';
 import openNotification from 'utils/openNotification';
 import MigrationModal from 'components/MigrationModal';
 import PageTemplate from 'components/PageTemplate';
 import ResetModal from 'components/ResetModal';
-import useToken from 'hooks/useToken';
 import Steps from './common/steps';
 import DegreeStep from './DegreeStep';
 import SpecialisationStep from './SpecialisationStep';
@@ -24,7 +22,6 @@ const { Title } = Typography;
 const DEFAULT_SPEC_TYPES = ['majors', 'honours', 'minors'];
 
 const DegreeWizard = () => {
-  const token = useToken();
   const [currStep, setCurrStep] = useState(Steps.YEAR);
 
   const [degreeInfo, setDegreeInfo] = useState<DegreeWizardPayload>({
@@ -35,10 +32,7 @@ const DegreeWizard = () => {
   });
 
   const { programCode } = degreeInfo;
-  const isSetup = useQuery({
-    queryKey: ['degree', 'isSetup'], // TODO-OLLI(pm): fix this key
-    queryFn: () => getUserIsSetup(token)
-  }).data;
+  const isSetup = useUserSetupState().data;
   const navigate = useNavigate();
 
   const specTypesQuery = useQuery({

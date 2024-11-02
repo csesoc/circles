@@ -20,7 +20,7 @@ const LoginSuccess = () => {
 
         dispatch(updateIdentityWithAPIRes(identity));
         const userIsSetup = await queryClient.fetchQuery({
-          queryKey: ['degree', 'isSetup'], // TODO-OLLI(pm): fix this key
+          queryKey: ['isSetup'], // TODO-OLLI(pm): fix this key
           queryFn: () => getUserIsSetup(identity.session_token)
         });
 

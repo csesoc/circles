@@ -1,16 +1,13 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Typography } from 'antd';
 import { Course, CoursesUnlockedWhenTaken } from 'types/api';
 import { CourseList } from 'types/courses';
 import { badCourses, badValidations } from 'types/userResponse';
-import { validateTermPlanner } from 'utils/api/plannerApi';
-import { useUserCourses } from 'utils/apiHooks/user';
+import { useUserCourses, useUserTermValidations } from 'utils/apiHooks/user';
 import Collapsible from 'components/Collapsible';
 import CourseTag from 'components/CourseTag';
 import PrerequisiteTree from 'components/PrerequisiteTree';
 import { inDev } from 'config/constants';
-import useToken from 'hooks/useToken';
 import S from './styles';
 
 const { Text } = Typography;
@@ -28,8 +25,6 @@ const CourseInfoDrawers = ({
   pathFrom = [],
   unlocked
 }: CourseInfoDrawersProps) => {
-  const token = useToken();
-
   const courses = useUserCourses().data || badCourses;
 
   const pathFromInPlanner = pathFrom.filter((courseCode) =>
@@ -38,11 +33,8 @@ const CourseInfoDrawers = ({
   const pathFromNotInPlanner = pathFrom.filter(
     (courseCode) => !Object.keys(courses).includes(courseCode)
   );
-  const inPlanner = courses[course.code];
-  const validateQuery = useQuery({
-    queryKey: ['validate'],
-    queryFn: () => validateTermPlanner(token)
-  });
+  const inPlanner = !!courses[course.code];
+  const validateQuery = useUserTermValidations();
   const validations = validateQuery.data ?? badValidations;
   const isUnlocked = validations.courses_state[course.code];
   return (

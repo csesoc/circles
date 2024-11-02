@@ -10,14 +10,17 @@ import { useQuery } from '@tanstack/react-query';
 import { Switch } from 'antd';
 import { CourseEdge } from 'types/api';
 import { useDebouncedCallback } from 'use-debounce';
-import { getAllUnlockedCourses } from 'utils/api/coursesApi';
 import { getProgramGraph } from 'utils/api/programsApi';
-import { useUserCourses, useUserDegree, useUserPlanner } from 'utils/apiHooks/user';
+import {
+  useUserAllUnlocked,
+  useUserCourses,
+  useUserDegree,
+  useUserPlanner
+} from 'utils/apiHooks/user';
 import { unwrapQuery } from 'utils/queryUtils';
 import Spinner from 'components/Spinner';
 import { useAppWindowSize } from 'hooks';
 import useSettings from 'hooks/useSettings';
-import useToken from 'hooks/useToken';
 import { ZOOM_IN_RATIO, ZOOM_OUT_RATIO } from '../constants';
 import {
   defaultEdge,
@@ -56,8 +59,6 @@ const CourseGraph = ({
   loading,
   setLoading
 }: Props) => {
-  const token = useToken();
-
   const degreeQuery = useUserDegree();
   const plannerQuery = useUserPlanner();
   const coursesQuery = useUserCourses();
@@ -80,10 +81,7 @@ const CourseGraph = ({
     enabled: !degreeQuery.isPending && degreeQuery.data && degreeQuery.isSuccess
   });
 
-  const coursesStateQuery = useQuery({
-    queryKey: ['courses', 'coursesState'],
-    queryFn: () => getAllUnlockedCourses(token)
-  });
+  const coursesStateQuery = useUserAllUnlocked();
 
   const queriesSuccess =
     degreeQuery.isSuccess && coursesQuery.isSuccess && programGraphQuery.isSuccess;

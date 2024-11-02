@@ -21,7 +21,7 @@ import {
   updateDegreeLength,
   updateStartYear
 } from 'utils/api/userApi';
-import { createUserMutationHook } from './hookHelpers';
+import { createUserMutationHook } from '../hookHelpers';
 
 export const useRemoveCourseMutation = createUserMutationHook([['planner']], removeCourse);
 
