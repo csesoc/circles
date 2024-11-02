@@ -2,11 +2,10 @@ import React, { useMemo } from 'react';
 import { scroller } from 'react-scroll';
 import { ArrowDownOutlined } from '@ant-design/icons';
 import { useSpring } from '@react-spring/web';
-import { useQuery } from '@tanstack/react-query';
 import { Button, Typography } from 'antd';
 import { ProgramStructure } from 'types/structure';
 import { badCourses, badDegree } from 'types/userResponse';
-import { fetchAllDegrees } from 'utils/api/programsApi';
+import { useProgramsQuery } from 'utils/apiHooks/static';
 import { useUserCourses, useUserDegree } from 'utils/apiHooks/user';
 import getNumTerms from 'utils/getNumTerms';
 import LiquidProgressChart from 'components/LiquidProgressChart';
@@ -45,12 +44,7 @@ const Dashboard = ({ isLoading, structure, totalUOC, freeElectivesUOC }: Props) 
   const degree = degreeQuery.data || badDegree;
   const { programCode } = degree;
 
-  const programName = (useQuery({
-    queryKey: ['program'],
-    queryFn: fetchAllDegrees
-  }).data?.programs || {
-    [programCode]: ''
-  })[programCode];
+  const programName = (useProgramsQuery().data?.programs || { [programCode]: '' })[programCode];
 
   let completedUOC = 0;
   Object.keys(courses).forEach((courseCode) => {

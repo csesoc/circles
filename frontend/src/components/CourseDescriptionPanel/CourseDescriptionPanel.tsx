@@ -1,10 +1,8 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { Typography } from 'antd';
 import { CoursesResponse } from 'types/userResponse';
-import { getCourseInfo, getCoursePrereqs } from 'utils/api/coursesApi';
-import { getCourseTimetable } from 'utils/api/timetableApi';
+import { useCourseInfoQuery } from 'utils/apiHooks/static';
 import { useUserCoursesUnlockedWhenTaken } from 'utils/apiHooks/user';
 import getEnrolmentCapacity from 'utils/getEnrolmentCapacity';
 import { unwrapSettledPromise } from 'utils/queryUtils';
@@ -18,14 +16,6 @@ import CourseInfoDrawers from './CourseInfoDrawers';
 import S from './styles';
 
 const { Title, Text } = Typography;
-
-const getCourseExtendedInfo = async (courseCode: string) => {
-  return Promise.allSettled([
-    getCourseInfo(courseCode),
-    getCoursePrereqs(courseCode),
-    getCourseTimetable(courseCode)
-  ]);
-};
 
 type CourseDescriptionPanelProps = {
   className?: string;
@@ -45,10 +35,7 @@ const CourseDescriptionPanel = ({
 
   const coursesUnlockedQuery = useUserCoursesUnlockedWhenTaken({}, courseCode);
 
-  const courseInfoQuery = useQuery({
-    queryKey: ['courseInfo', courseCode],
-    queryFn: () => getCourseExtendedInfo(courseCode)
-  });
+  const courseInfoQuery = useCourseInfoQuery({}, courseCode);
 
   const loadingWrapper = (
     <S.Wrapper $sidebar={sidebar}>

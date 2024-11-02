@@ -5,7 +5,6 @@ import {
   EyeInvisibleOutlined,
   TableOutlined
 } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
 import { Button, Divider, Typography } from 'antd';
 import {
   ProgressionAdditionalCourses,
@@ -16,7 +15,7 @@ import {
 } from 'types/progressionViews';
 import { ProgramStructure } from 'types/structure';
 import { badCourses, badPlanner } from 'types/userResponse';
-import { getProgramStructure } from 'utils/api/programsApi';
+import { useStructureQuery } from 'utils/apiHooks/static';
 import { useUserCourses, useUserDegree, useUserPlanner } from 'utils/apiHooks/user';
 import getNumTerms from 'utils/getNumTerms';
 import openNotification from 'utils/openNotification';
@@ -39,11 +38,15 @@ const ProgressionChecker = () => {
   const degreeQuery = useUserDegree();
   const degree = degreeQuery.data;
 
-  const structureQuery = useQuery({
-    queryKey: ['structure', degree?.programCode, degree?.specs],
-    queryFn: () => getProgramStructure(degree!.programCode, degree!.specs),
-    enabled: degree !== undefined
-  });
+  const structureQuery = useStructureQuery(
+    {
+      queryOptions: {
+        enabled: degree !== undefined
+      }
+    },
+    degree!.programCode,
+    degree!.specs
+  );
   const structure: ProgramStructure = structureQuery.data?.structure ?? {};
   const uoc = structureQuery.data?.uoc ?? 0;
 

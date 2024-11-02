@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useQuery } from '@tanstack/react-query';
 import type { MenuProps } from 'antd';
 import { CourseUnitsStructure, MenuDataStructure, MenuDataSubgroup } from 'types/courseMenu';
 import { CourseValidation } from 'types/courses';
 import { ProgramStructure } from 'types/structure';
 import { CoursesResponse, DegreeResponse } from 'types/userResponse';
-import { getProgramStructure } from 'utils/api/programsApi';
+import { useStructureQuery } from 'utils/apiHooks/static';
 import {
   useAddToUnplannedMutation,
   useRemoveCourseMutation,
@@ -40,11 +39,13 @@ const SubgroupTitle = ({ title, currUOC, totalUOC }: SubgroupTitleProps) => (
 );
 
 const CourseMenu = ({ courses, degree }: CourseMenuProps) => {
-  const structureQuery = useQuery({
-    queryKey: ['structure', degree],
-    queryFn: () => getProgramStructure(degree!.programCode, degree!.specs),
-    enabled: !!degree
-  });
+  const structureQuery = useStructureQuery(
+    {
+      queryOptions: { enabled: degree !== undefined }
+    },
+    degree!.programCode,
+    degree!.specs
+  );
 
   const coursesStateQuery = useUserAllUnlocked();
 
