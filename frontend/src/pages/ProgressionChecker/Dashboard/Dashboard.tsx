@@ -5,7 +5,7 @@ import { useSpring } from '@react-spring/web';
 import { Button, Typography } from 'antd';
 import { ProgramStructure } from 'types/structure';
 import { badCourses, badDegree } from 'types/userResponse';
-import { useProgramsQuery } from 'utils/apiHooks/static';
+import { useAllDegreesQuery } from 'utils/apiHooks/static';
 import { useUserCourses, useUserDegree } from 'utils/apiHooks/user';
 import getNumTerms from 'utils/getNumTerms';
 import LiquidProgressChart from 'components/LiquidProgressChart';
@@ -44,7 +44,7 @@ const Dashboard = ({ isLoading, structure, totalUOC, freeElectivesUOC }: Props) 
   const degree = degreeQuery.data || badDegree;
   const { programCode } = degree;
 
-  const programName = (useProgramsQuery().data?.programs || { [programCode]: '' })[programCode];
+  const programName = (useAllDegreesQuery().data?.programs || { [programCode]: '' })[programCode];
 
   let completedUOC = 0;
   Object.keys(courses).forEach((courseCode) => {

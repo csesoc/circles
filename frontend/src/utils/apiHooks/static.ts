@@ -6,50 +6,50 @@ import { getCourseRating } from 'utils/api/unilectivesApi';
 import { createStaticQueryHook } from './hookHelpers';
 
 export const useCourseRatingQuery = createStaticQueryHook(
-  (code) => ['courseRating', code],
+  (code) => ['courses', code, 'rating'],
   getCourseRating
 );
 
 export const useCourseInfoQuery = createStaticQueryHook(
-  (code) => ['courseInfo', code],
+  (code) => ['courses', code, 'info'],
   getCourseInfo
 );
 
 export const useCourseTimetableQuery = createStaticQueryHook(
-  (code) => ['courseTimetable', code],
+  (code) => ['courses', code, 'timetable'],
   getCourseTimetable
 );
 
-export const useProgramsQuery = createStaticQueryHook(() => ['programs'], fetchAllDegrees);
-
-export const useStructureQuery = createStaticQueryHook(
-  (programCode, specs) => ['structure', programCode, specs],
-  getProgramStructure
-);
-
 export const useCourseChildrenQuery = createStaticQueryHook(
-  (courseCode) => ['course', 'children', courseCode],
+  (code) => ['courses', code, 'children'],
   getCourseChildren
 );
 
 export const useCoursePrereqsQuery = createStaticQueryHook(
-  (courseCode) => ['course', 'prereqs', courseCode],
+  (code) => ['courses', code, 'prereqs'],
   getCoursePrereqs
 );
 
 export const useAllDegreesQuery = createStaticQueryHook(() => ['programs'], fetchAllDegrees);
 
+export const useStructureQuery = createStaticQueryHook(
+  (programCode, specs) => ['programs', programCode, 'structure', specs],
+  getProgramStructure
+);
+
 export const useSpecsForProgramQuery = createStaticQueryHook(
-  (programCode, specType) => ['specialisations', programCode, specType],
+  (programCode, specType) => ['programs', programCode, 'specialisations', specType],
   getSpecialisationsForProgram
 );
 
 export const useSpecTypesQuery = createStaticQueryHook(
-  (programCode) => ['specialisations', 'types', programCode],
+  (programCode) => ['programs', programCode, 'specialisation-types'],
   getSpecialisationTypes
 );
 
 export const useProgramGraphQuery = createStaticQueryHook(
-  (programCode, specs) => ['graph', { code: programCode, specs }],
+  (programCode, specs) => ['programs', programCode, 'graph', specs],
   getProgramGraph
 );
+
+// TODO: multi queries (as found in termplanner)

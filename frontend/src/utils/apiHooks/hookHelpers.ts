@@ -45,6 +45,8 @@ export function createUserQueryHook<
         queryKey: ['user', userId!, ...keySuffixFn(...args)],
         queryFn: () => fn(token!, ...args),
 
+        staleTime: 1000 * 60 * 5, // 5 minutes
+
         ...baseOptions,
         ...options?.queryOptions,
 
@@ -148,6 +150,9 @@ export function createStaticQueryHook<
       {
         queryKey: ['static', ...keySuffixFn(...args)],
         queryFn: () => fn(...args),
+
+        staleTime: Infinity,
+        gcTime: 1000 * 60 * 15, // 15 minutes
 
         ...baseOptions,
         ...options?.queryOptions

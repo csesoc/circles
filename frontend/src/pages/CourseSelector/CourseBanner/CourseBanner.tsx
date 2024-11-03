@@ -1,7 +1,7 @@
 import React from 'react';
 import { Typography } from 'antd';
 import { CoursesResponse } from 'types/userResponse';
-import { useProgramsQuery } from 'utils/apiHooks/static';
+import { useAllDegreesQuery } from 'utils/apiHooks/static';
 import { useUserDegree } from 'utils/apiHooks/user';
 import CourseSearchBar from 'components/CourseSearchBar';
 import { useAppDispatch } from 'hooks';
@@ -18,7 +18,7 @@ const CourseBanner = ({ courses }: CourseBannerProps) => {
   const dispatch = useAppDispatch();
 
   const degreeQuery = useUserDegree();
-  const allPrograms = useProgramsQuery();
+  const allPrograms = useAllDegreesQuery();
 
   const getUserProgramTitle = (): string => {
     if (degreeQuery.data?.programCode) {
