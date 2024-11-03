@@ -6,11 +6,10 @@ import {
   ZoomOutOutlined
 } from '@ant-design/icons';
 import type { Graph, GraphOptions, IG6GraphEvent, INode, Item } from '@antv/g6';
-import { useQuery } from '@tanstack/react-query';
 import { Switch } from 'antd';
 import { CourseEdge } from 'types/api';
 import { useDebouncedCallback } from 'use-debounce';
-import { getProgramGraph } from 'utils/api/programsApi';
+import { useProgramGraphQuery } from 'utils/apiHooks/static';
 import {
   useUserAllUnlocked,
   useUserCourses,
@@ -75,11 +74,13 @@ const CourseGraph = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [showingUnlockedCourses, setShowingUnlockedCourses] = useState(false);
 
-  const programGraphQuery = useQuery({
-    queryKey: ['graph', { code: degreeQuery.data?.programCode, specs: degreeQuery.data?.specs }],
-    queryFn: () => getProgramGraph(degreeQuery.data!.programCode, degreeQuery.data!.specs),
-    enabled: !degreeQuery.isPending && degreeQuery.data && degreeQuery.isSuccess
-  });
+  const programGraphQuery = useProgramGraphQuery(
+    {
+      queryOptions: { enabled: !degreeQuery.isPending && degreeQuery.data && degreeQuery.isSuccess }
+    },
+    degreeQuery.data!.programCode,
+    degreeQuery.data!.specs
+  );
 
   const coursesStateQuery = useUserAllUnlocked();
 

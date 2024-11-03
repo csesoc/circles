@@ -13,14 +13,14 @@ import useIdentity from 'hooks/useIdentity';
 type UserQueryKey<Key extends QueryKey> = ['user', uid: string, ...Key];
 
 export type CreateUserQueryOptions<FRet, Key extends QueryKey> = Omit<
-  UseQueryOptions<FRet, Error, FRet, UserQueryKey<Key>>,
-  'queryKey' | 'queryFn' | 'enabled'
+  UseQueryOptions<FRet, Error, unknown, UserQueryKey<Key>>,
+  'queryKey' | 'queryFn' | 'enabled' | 'select'
 >;
-export type UserQueryHookOptions<FRet, Key extends QueryKey> = {
+export type UserQueryHookOptions<FRet, SelectFRet, Key extends QueryKey> = {
   allowUnsetToken?: boolean;
   queryClient?: QueryClient;
   queryOptions?: Omit<
-    UseQueryOptions<FRet, Error, FRet, UserQueryKey<Key>>,
+    UseQueryOptions<FRet, Error, SelectFRet, UserQueryKey<Key>>,
     'queryKey' | 'queryFn'
   >;
 };
@@ -34,10 +34,13 @@ export function createUserQueryHook<
   fn: (token: string, ...args: FArgs) => Promise<FRet>,
   baseOptions?: CreateUserQueryOptions<FRet, Key>
 ) {
-  return (options?: UserQueryHookOptions<FRet, Key>, ...args: FArgs) => {
+  return <SelectFRet = FRet>(
+    options?: UserQueryHookOptions<FRet, SelectFRet, Key>,
+    ...args: FArgs
+  ) => {
     const { userId, token } = useIdentity(options?.allowUnsetToken === true) ?? {};
 
-    const query = useQuery(
+    return useQuery<FRet, Error, SelectFRet, UserQueryKey<Key>>(
       {
         queryKey: ['user', userId!, ...keySuffixFn(...args)],
         queryFn: () => fn(token!, ...args),
@@ -49,8 +52,6 @@ export function createUserQueryHook<
       },
       options?.queryClient
     );
-
-    return query;
   };
 }
 
@@ -119,14 +120,13 @@ export function createUserMutationHook<
 type StaticQueryKey<Key extends QueryKey> = ['static', ...Key];
 
 export type CreateStaticQueryOptions<FRet, Key extends QueryKey> = Omit<
-  UseQueryOptions<FRet, Error, FRet, StaticQueryKey<Key>>,
-  'queryKey' | 'queryFn'
+  UseQueryOptions<FRet, Error, unknown, StaticQueryKey<Key>>,
+  'queryKey' | 'queryFn' | 'enabled' | 'select'
 >;
-export type StaticQueryHookOptions<FRet, Key extends QueryKey> = {
-  allowUnsetToken?: boolean;
+export type StaticQueryHookOptions<FRet, SelectFRet, Key extends QueryKey> = {
   queryClient?: QueryClient;
   queryOptions?: Omit<
-    UseQueryOptions<FRet, Error, FRet, StaticQueryKey<Key>>,
+    UseQueryOptions<FRet, Error, SelectFRet, StaticQueryKey<Key>>,
     'queryKey' | 'queryFn'
   >;
 };
@@ -136,12 +136,15 @@ export function createStaticQueryHook<
   const FArgs extends unknown[],
   const FRet
 >(
-  keySuffixFn: (...args: FArgs) => Key,
+  keySuffixFn: (...args: Parameters<typeof fn>) => Key,
   fn: (...args: FArgs) => Promise<FRet>,
   baseOptions?: CreateStaticQueryOptions<FRet, Key>
 ) {
-  return (options?: StaticQueryHookOptions<FRet, Key>, ...args: FArgs) => {
-    const query = useQuery(
+  return <SelectFRet = FRet>(
+    options?: StaticQueryHookOptions<FRet, SelectFRet, Key>,
+    ...args: FArgs
+  ) => {
+    return useQuery<FRet, Error, SelectFRet, StaticQueryKey<Key>>(
       {
         queryKey: ['static', ...keySuffixFn(...args)],
         queryFn: () => fn(...args),
@@ -151,7 +154,5 @@ export function createStaticQueryHook<
       },
       options?.queryClient
     );
-
-    return query;
   };
 }

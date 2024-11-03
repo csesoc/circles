@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { scroller } from 'react-scroll';
-import { useQuery } from '@tanstack/react-query';
 import { Button, Typography } from 'antd';
 import { DegreeWizardPayload } from 'types/degreeWizard';
-import { getSpecialisationTypes } from 'utils/api/specsApi';
+import { useSpecTypesQuery } from 'utils/apiHooks/static';
 import { useResetDegreeMutation, useUserSetupState } from 'utils/apiHooks/user';
 import openNotification from 'utils/openNotification';
 import MigrationModal from 'components/MigrationModal';
@@ -35,12 +34,12 @@ const DegreeWizard = () => {
   const isSetup = useUserSetupState().data;
   const navigate = useNavigate();
 
-  const specTypesQuery = useQuery({
-    queryKey: ['specialisations', 'types', programCode],
-    queryFn: () => getSpecialisationTypes(programCode),
-    select: (data) => data.types,
-    enabled: programCode !== ''
-  });
+  const specTypesQuery = useSpecTypesQuery(
+    {
+      queryOptions: { select: (data) => data.types, enabled: programCode !== '' }
+    },
+    programCode
+  );
   const specs = specTypesQuery.data ?? DEFAULT_SPEC_TYPES;
   const stepList = ['year', 'degree'].concat(specs).concat(['start browsing']);
 

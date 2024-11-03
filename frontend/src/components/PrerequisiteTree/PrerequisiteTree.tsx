@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { Item, TreeGraph, TreeGraphData } from '@antv/g6';
-import { useQuery } from '@tanstack/react-query';
-import { getCourseChildren, getCoursePrereqs } from 'utils/api/coursesApi';
+import { useCourseChildrenQuery, useCoursePrereqsQuery } from 'utils/apiHooks/static';
 import Spinner from 'components/Spinner';
 import GRAPH_STYLE from './config';
 import TREE_CONSTANTS from './constants';
@@ -18,17 +17,15 @@ const PrerequisiteTree = ({ courseCode, onCourseClick }: Props) => {
   const graphRef = useRef<TreeGraph | null>(null);
   const ref = useRef<HTMLDivElement | null>(null);
 
-  const childrenQuery = useQuery({
-    queryKey: ['course', 'children', courseCode], // TODO: make this key reasonable when we rework all keys
-    queryFn: () => getCourseChildren(courseCode),
-    select: (data) => data.courses
-  });
+  const childrenQuery = useCourseChildrenQuery(
+    { queryOptions: { select: (data) => data.courses } },
+    courseCode
+  );
 
-  const prereqsQuery = useQuery({
-    queryKey: ['course', 'prereqs', courseCode],
-    queryFn: () => getCoursePrereqs(courseCode),
-    select: (data) => data.courses
-  });
+  const prereqsQuery = useCoursePrereqsQuery(
+    { queryOptions: { select: (data) => data.courses } },
+    courseCode
+  );
 
   useEffect(() => {
     // if the course code changes, force a reload (REQUIRED)

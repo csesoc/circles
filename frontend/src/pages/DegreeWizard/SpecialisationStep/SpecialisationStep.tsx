@@ -1,9 +1,8 @@
 import React from 'react';
 import { animated, useSpring } from '@react-spring/web';
-import { useQuery } from '@tanstack/react-query';
 import { Button, Select, Typography } from 'antd';
 import { DegreeWizardPayload } from 'types/degreeWizard';
-import { getSpecialisationsForProgram } from 'utils/api/specsApi';
+import { useSpecsForProgramQuery } from 'utils/apiHooks/static';
 import openNotification from 'utils/openNotification';
 import Spinner from 'components/Spinner';
 import springProps from '../common/spring';
@@ -45,12 +44,13 @@ const SpecialisationStep = ({
     }));
   };
 
-  const specsQuery = useQuery({
-    queryKey: ['specialisations', degreeInfo.programCode, type],
-    queryFn: () => getSpecialisationsForProgram(degreeInfo.programCode, type),
-    select: (data) => data.spec,
-    enabled: degreeInfo.programCode !== ''
-  });
+  const specsQuery = useSpecsForProgramQuery(
+    {
+      queryOptions: { select: (data) => data.spec, enabled: degreeInfo.programCode !== '' }
+    },
+    degreeInfo.programCode,
+    type
+  );
   const options = specsQuery.data;
 
   type SelectGroup = {
