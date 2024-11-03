@@ -10,17 +10,14 @@ export const useCourseRatingQuery = createStaticQueryHook(
   getCourseRating
 );
 
-const getCourseExtendedInfo = async (courseCode: string) => {
-  return Promise.allSettled([
-    getCourseInfo(courseCode),
-    getCoursePrereqs(courseCode),
-    getCourseTimetable(courseCode)
-  ]);
-};
-
 export const useCourseInfoQuery = createStaticQueryHook(
   (code) => ['courseInfo', code],
-  getCourseExtendedInfo
+  getCourseInfo
+);
+
+export const useCourseTimetableQuery = createStaticQueryHook(
+  (code) => ['courseTimetable', code],
+  getCourseTimetable
 );
 
 export const useProgramsQuery = createStaticQueryHook(() => ['programs'], fetchAllDegrees);

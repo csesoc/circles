@@ -2,10 +2,13 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { Typography } from 'antd';
 import { CoursesResponse } from 'types/userResponse';
-import { useCourseInfoQuery } from 'utils/apiHooks/static';
+import {
+  useCourseInfoQuery,
+  useCoursePrereqsQuery,
+  useCourseTimetableQuery
+} from 'utils/apiHooks/static';
 import { useUserCoursesUnlockedWhenTaken } from 'utils/apiHooks/user';
 import getEnrolmentCapacity from 'utils/getEnrolmentCapacity';
-import { unwrapSettledPromise } from 'utils/queryUtils';
 import {
   LoadingCourseDescriptionPanel,
   LoadingCourseDescriptionPanelSidebar
@@ -35,7 +38,12 @@ const CourseDescriptionPanel = ({
 
   const coursesUnlockedQuery = useUserCoursesUnlockedWhenTaken({}, courseCode);
 
-  const courseInfoQuery = useCourseInfoQuery({}, courseCode);
+  const courseQuery = useCourseInfoQuery({}, courseCode);
+  const coursePrereqsQuery = useCoursePrereqsQuery({}, courseCode);
+  const courseCapacityQuery = useCourseTimetableQuery(
+    { queryOptions: { select: getEnrolmentCapacity, retry: 1, enabled: sidebar } }, // retry only once because we have bad error handling
+    courseCode
+  );
 
   const loadingWrapper = (
     <S.Wrapper $sidebar={sidebar}>
@@ -43,12 +51,16 @@ const CourseDescriptionPanel = ({
     </S.Wrapper>
   );
 
-  if (courseInfoQuery.isPending || !courseInfoQuery.isSuccess) return loadingWrapper;
+  if (
+    courseQuery.isPending ||
+    coursePrereqsQuery.isPending ||
+    (sidebar && courseCapacityQuery.isPending)
+  )
+    return loadingWrapper;
 
-  const [courseRes, pathFromRes, courseCapRes] = courseInfoQuery.data;
-  const course = unwrapSettledPromise(courseRes);
-  const coursesPathFrom = unwrapSettledPromise(pathFromRes)?.courses;
-  const courseCapacity = getEnrolmentCapacity(unwrapSettledPromise(courseCapRes));
+  const course = courseQuery.data;
+  const coursesPathFrom = coursePrereqsQuery.data?.courses;
+  const courseCapacity = courseCapacityQuery.data;
 
   // course wasn't fetchable (fatal; should do proper error handling instead of indefinitely loading)
   if (!course) return loadingWrapper;

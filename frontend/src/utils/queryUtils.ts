@@ -7,12 +7,3 @@ export const unwrapQuery = <T>(data: T | undefined): T => {
   }
   return data;
 };
-
-export const unwrapSettledPromise = <T>(res: PromiseSettledResult<T>): T | undefined => {
-  if (res.status === 'rejected') {
-    // eslint-disable-next-line no-console
-    console.error('Rejected request at unwrap', res.reason);
-    return undefined;
-  }
-  return res.value;
-};
