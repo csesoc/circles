@@ -43,8 +43,9 @@ const CourseMenu = ({ courses, degree }: CourseMenuProps) => {
     {
       queryOptions: { enabled: degree !== undefined }
     },
-    degree!.programCode,
-    degree!.specs
+    // TODO-olli: this is ugly, but we will need some interesting type rules to allow this otherwise
+    degree?.programCode ?? '',
+    degree?.specs ?? []
   );
 
   const coursesStateQuery = useUserAllUnlocked();

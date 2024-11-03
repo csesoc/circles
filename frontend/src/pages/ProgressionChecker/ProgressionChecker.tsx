@@ -44,8 +44,9 @@ const ProgressionChecker = () => {
         enabled: degree !== undefined
       }
     },
-    degree!.programCode,
-    degree!.specs
+    // TODO-olli: this is ugly, but we will need some interesting type rules to allow this otherwise
+    degree?.programCode ?? '',
+    degree?.specs ?? []
   );
   const structure: ProgramStructure = structureQuery.data?.structure ?? {};
   const uoc = structureQuery.data?.uoc ?? 0;

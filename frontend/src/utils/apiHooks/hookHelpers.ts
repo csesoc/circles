@@ -78,7 +78,7 @@ export function createUserMutationHook<
   return (options?: UserMutationHookOptions<FArg, FRet>) => {
     const { userId, token } = useIdentity(options?.allowUnsetToken === true) ?? {};
 
-    const queryClient = useQueryClient();
+    const queryClient = useQueryClient(options?.queryClient);
     const mutation = useMutation(
       {
         mutationFn: async (data: FArg) =>
@@ -89,12 +89,11 @@ export function createUserMutationHook<
 
         onSuccess: (data, variables, context) => {
           if (invalidationKeySuffixes === true) {
-            queryClient.invalidateQueries({
-              queryKey: ['user', userId]
-            });
-
             // TODO-olli: figure out which one we want to do...
-            // queryClient.resetQueries();
+            queryClient.resetQueries({ queryKey: ['user', userId] });
+            // queryClient.invalidateQueries({
+            //   queryKey: ['user', userId]
+            // });
           } else {
             invalidationKeySuffixes.forEach((key) =>
               queryClient.invalidateQueries({
@@ -131,6 +130,7 @@ export type StaticQueryHookOptions<FRet, SelectFRet, Key extends QueryKey> = {
   >;
 };
 
+// TODO-olli: allow nullish params with a new option that auto includes them in enabled
 export function createStaticQueryHook<
   const Key extends QueryKey,
   const FArgs extends unknown[],

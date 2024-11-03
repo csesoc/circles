@@ -78,8 +78,9 @@ const CourseGraph = ({
     {
       queryOptions: { enabled: !degreeQuery.isPending && degreeQuery.data && degreeQuery.isSuccess }
     },
-    degreeQuery.data!.programCode,
-    degreeQuery.data!.specs
+    // TODO-olli: this is ugly, but we will need some interesting type rules to allow this otherwise
+    degreeQuery.data?.programCode ?? '',
+    degreeQuery.data?.specs ?? []
   );
 
   const coursesStateQuery = useUserAllUnlocked();

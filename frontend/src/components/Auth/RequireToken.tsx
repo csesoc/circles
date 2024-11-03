@@ -26,20 +26,22 @@ const RequireToken = ({ needSetup }: Props) => {
 
   useEffect(() => {
     // TODO-OLLI(pm): wont need this when we get new notification hook
-    if (token === undefined || !!error) {
-      openNotification({
-        type: 'error',
-        message: 'Error',
-        description: 'You must be logged in before visiting this page 🙂'
-      });
-    } else if (isSetup === false && !!needSetup) {
-      openNotification({
-        type: 'warning',
-        message: 'Warning',
-        description: 'You must setup your degree before visiting this page 🙂'
-      });
+    if (!isPending) {
+      if (token === undefined || !!error) {
+        openNotification({
+          type: 'error',
+          message: 'Error',
+          description: 'You must be logged in before visiting this page 🙂'
+        });
+      } else if (isSetup === false && !!needSetup) {
+        openNotification({
+          type: 'warning',
+          message: 'Warning',
+          description: 'You must setup your degree before visiting this page 🙂'
+        });
+      }
     }
-  }, [token, isSetup, error, needSetup]);
+  }, [token, isPending, isSetup, error, needSetup]);
 
   if (token === undefined) {
     return <Navigate to="/login" />;
