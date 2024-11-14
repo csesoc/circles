@@ -20,8 +20,9 @@ const LoginSuccess = () => {
 
         dispatch(updateIdentityWithAPIRes(identity));
         const userIsSetup = await queryClient.fetchQuery({
-          queryKey: ['isSetup'], // TODO-OLLI(pm): fix this key
-          queryFn: () => getUserIsSetup(identity.session_token)
+          queryKey: ['user', identity.uid, 'isSetup'], // HAS TO MATCH queries.ts
+          queryFn: () => getUserIsSetup(identity.session_token),
+          staleTime: 1000 * 60 * 5 // 5 minutes
         });
 
         navigate(userIsSetup ? '/course-selector' : '/degree-wizard', { replace: true });

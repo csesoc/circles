@@ -89,13 +89,15 @@ const TermPlanner = () => {
   // comes in as an { [year]: course }[], which gets auto extrapolated, also preseeded with bad data
   const courseQueries = useQueries({
     queries: Object.keys(courses).map((code: string) => ({
-      queryKey: ['course', code, { years: validYears }],
+      queryKey: ['courses', code, 'multiinfo', { years: validYears }],
       queryFn: () =>
         getCourseForYearsInfo(
           code,
           validYears.filter((year) => year < LIVE_YEAR)
         ),
       select: (data: Record<number, Course>) => extrapolateCourseYears(data, validYears),
+      staleTime: Infinity,
+      gcTime: 1000 * 60 * 15, // 15 minutes
       placeholderData: badCourseYears(code, validYears)
     }))
   });
