@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CSELogin } from 'utils/api/authApi';
 import { getUserIsSetup } from 'utils/api/userApi';
+import { DEFAULT_USER_QUERY_OPTIONS } from 'utils/apiHooks/hookHelpers';
 import PageLoading from 'components/PageLoading';
 import { unsetIdentity, updateIdentityWithAPIRes } from 'reducers/identitySlice';
 
@@ -20,9 +21,9 @@ const LoginSuccess = () => {
 
         dispatch(updateIdentityWithAPIRes(identity));
         const userIsSetup = await queryClient.fetchQuery({
+          ...DEFAULT_USER_QUERY_OPTIONS,
           queryKey: ['user', identity.uid, 'isSetup'], // HAS TO MATCH queries.ts
-          queryFn: () => getUserIsSetup(identity.session_token),
-          staleTime: 1000 * 60 * 5 // 5 minutes
+          queryFn: () => getUserIsSetup(identity.session_token)
         });
 
         navigate(userIsSetup ? '/course-selector' : '/degree-wizard', { replace: true });

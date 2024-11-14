@@ -25,6 +25,10 @@ export type UserQueryHookOptions<FRet, SelectFRet, Key extends QueryKey> = {
   >;
 };
 
+export const DEFAULT_USER_QUERY_OPTIONS = {
+  staleTime: 1000 * 60 * 5 // 5 minutes
+};
+
 export function createUserQueryHook<
   const Key extends QueryKey,
   const FArgs extends unknown[],
@@ -45,8 +49,7 @@ export function createUserQueryHook<
         queryKey: ['user', userId!, ...keySuffixFn(...args)],
         queryFn: () => fn(token!, ...args),
 
-        staleTime: 1000 * 60 * 5, // 5 minutes
-
+        ...DEFAULT_USER_QUERY_OPTIONS,
         ...baseOptions,
         ...options?.queryOptions,
 
@@ -132,6 +135,11 @@ export type StaticQueryHookOptions<FRet, SelectFRet, Key extends QueryKey> = {
   >;
 };
 
+export const DEFAULT_STATIC_QUERY_OPTIONS = {
+  staleTime: Infinity,
+  gcTime: 1000 * 60 * 15 // 15 minutes
+};
+
 // TODO-olli: allow nullish params with a new option that auto includes them in enabled
 export function createStaticQueryHook<
   const Key extends QueryKey,
@@ -151,9 +159,7 @@ export function createStaticQueryHook<
         queryKey: ['static', ...keySuffixFn(...args)],
         queryFn: () => fn(...args),
 
-        staleTime: Infinity,
-        gcTime: 1000 * 60 * 15, // 15 minutes
-
+        ...DEFAULT_STATIC_QUERY_OPTIONS,
         ...baseOptions,
         ...options?.queryOptions
       },
