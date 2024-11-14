@@ -11,11 +11,12 @@ import {
   PieChartOutlined,
   StarOutlined
 } from '@ant-design/icons';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { UnscheduleCourse } from 'types/planner';
-import { removeCourse, toggleIgnoreFromProgression, unscheduleCourse } from 'utils/api/plannerApi';
+import {
+  useRemoveCourseMutation,
+  useToggleIgnoreFromProgressionMutation,
+  useUnscheduleCourseMutation
+} from 'utils/apiHooks/user';
 import EditMarkModal from 'components/EditMarkModal';
-import useToken from 'hooks/useToken';
 import { addTab } from 'reducers/courseTabsSlice';
 import 'react-contexify/ReactContexify.css';
 
@@ -26,53 +27,21 @@ type Props = {
 };
 
 const ContextMenu = ({ code, plannedFor, ignoreFromProgression }: Props) => {
-  const token = useToken();
-
-  const queryClient = useQueryClient();
   const [openModal, setOpenModal] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const showEditMark = () => setOpenModal(true);
-  const handleUnschedule = useMutation({
-    mutationFn: (data: UnscheduleCourse) => unscheduleCourse(token, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['planner']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['courses']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['validate']
-      });
-    }
-  });
-  const handleDelete = useMutation({
-    mutationFn: (courseCode: string) => removeCourse(token, courseCode),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['planner']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['courses']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['validate']
-      });
-    }
-  });
+  const handleUnschedule = useUnscheduleCourseMutation();
+
+  const handleDelete = useRemoveCourseMutation();
+
   const handleInfo = () => {
     navigate('/course-selector');
     dispatch(addTab(code));
   };
-  const ignoreFromProgressionMutation = useMutation({
-    mutationFn: (courseId: string) => toggleIgnoreFromProgression(token, courseId),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: ['courses']
-      })
-  });
+
+  const ignoreFromProgressionMutation = useToggleIgnoreFromProgressionMutation();
   const handleToggleProgression = () => {
     ignoreFromProgressionMutation.mutate(code);
   };

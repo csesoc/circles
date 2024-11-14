@@ -2,17 +2,15 @@ import React, { useMemo } from 'react';
 import { scroller } from 'react-scroll';
 import { ArrowDownOutlined } from '@ant-design/icons';
 import { useSpring } from '@react-spring/web';
-import { useQuery } from '@tanstack/react-query';
 import { Button, Typography } from 'antd';
 import { ProgramStructure } from 'types/structure';
 import { badCourses, badDegree } from 'types/userResponse';
-import { fetchAllDegrees } from 'utils/api/programsApi';
-import { getUserCourses, getUserDegree } from 'utils/api/userApi';
+import { useAllDegreesQuery } from 'utils/apiHooks/static';
+import { useUserCourses, useUserDegree } from 'utils/apiHooks/user';
 import getNumTerms from 'utils/getNumTerms';
 import LiquidProgressChart from 'components/LiquidProgressChart';
 import { LoadingDashboard } from 'components/LoadingSkeleton';
 import SpecialisationCard from 'components/SpecialisationCard';
-import useToken from 'hooks/useToken';
 import FreeElectivesCard from './FreeElectivesCard';
 import S from './styles';
 
@@ -33,7 +31,6 @@ type Props = {
 const Dashboard = ({ isLoading, structure, totalUOC, freeElectivesUOC }: Props) => {
   const { Title } = Typography;
   const currYear = new Date().getFullYear();
-  const token = useToken();
 
   const props = useSpring({
     from: { opacity: 0 },
@@ -41,24 +38,13 @@ const Dashboard = ({ isLoading, structure, totalUOC, freeElectivesUOC }: Props) 
     reset: true,
     config: { tension: 80, friction: 60 }
   });
-  const coursesQuery = useQuery({
-    queryKey: ['courses'],
-    queryFn: () => getUserCourses(token)
-  });
+  const coursesQuery = useUserCourses();
   const courses = coursesQuery.data || badCourses;
-  const degreeQuery = useQuery({
-    queryKey: ['degree'],
-    queryFn: () => getUserDegree(token)
-  });
+  const degreeQuery = useUserDegree();
   const degree = degreeQuery.data || badDegree;
   const { programCode } = degree;
 
-  const programName = (useQuery({
-    queryKey: ['program'],
-    queryFn: fetchAllDegrees
-  }).data?.programs || {
-    [programCode]: ''
-  })[programCode];
+  const programName = (useAllDegreesQuery().data?.programs || { [programCode]: '' })[programCode];
 
   let completedUOC = 0;
   Object.keys(courses).forEach((courseCode) => {

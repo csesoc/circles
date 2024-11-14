@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { animated, useSpring } from '@react-spring/web';
-import { useQuery } from '@tanstack/react-query';
 import { Select, Typography } from 'antd';
 import { fuzzy } from 'fast-fuzzy';
 import { DegreeWizardPayload } from 'types/degreeWizard';
-import { fetchAllDegrees } from 'utils/api/programsApi';
+import { useAllDegreesQuery } from 'utils/apiHooks/static';
 import springProps from '../common/spring';
 import Steps from '../common/steps';
 import CS from '../common/styles';
@@ -19,14 +18,14 @@ type Props = {
 };
 
 const DegreeStep = ({ incrementStep, setDegreeInfo }: Props) => {
-  const allDegreesQuery = useQuery({
-    queryKey: ['programs'],
-    queryFn: fetchAllDegrees,
-    select: (data) =>
-      Object.keys(data.programs).map((code) => ({
-        label: `${code} ${data.programs[code]}`,
-        value: `${code} ${data.programs[code]}`
-      }))
+  const allDegreesQuery = useAllDegreesQuery({
+    queryOptions: {
+      select: (data) =>
+        Object.keys(data.programs).map((code) => ({
+          label: `${code} ${data.programs[code]}`,
+          value: `${code} ${data.programs[code]}`
+        }))
+    }
   });
   const allDegrees = allDegreesQuery.data ?? [];
 

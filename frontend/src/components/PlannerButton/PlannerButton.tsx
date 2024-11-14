@@ -1,10 +1,8 @@
 import React from 'react';
 import { PlusOutlined, StopOutlined } from '@ant-design/icons';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from 'antd';
 import { Course } from 'types/api';
-import { addToUnplanned, removeCourse } from 'utils/api/plannerApi';
-import useToken from 'hooks/useToken';
+import { useAddToUnplannedMutation, useRemoveCourseMutation } from 'utils/apiHooks/user';
 import S from './styles';
 
 interface PlannerButtonProps {
@@ -13,26 +11,10 @@ interface PlannerButtonProps {
 }
 
 const PlannerButton = ({ course, isAddedInPlanner }: PlannerButtonProps) => {
-  const token = useToken();
+  const removeCourseMutation = useRemoveCourseMutation();
+  const addToUnplannedMutation = useAddToUnplannedMutation();
 
-  const handleMutation = isAddedInPlanner
-    ? (code: string) => removeCourse(token, code)
-    : (code: string) => addToUnplanned(token, code);
-  const queryClient = useQueryClient();
-  const mutation = useMutation({
-    mutationFn: handleMutation,
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['courses']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['planner']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['validate']
-      });
-    }
-  });
+  const mutation = isAddedInPlanner ? removeCourseMutation : addToUnplannedMutation;
 
   const handleClick = (e: React.MouseEvent<HTMLElement>) => {
     e.stopPropagation();

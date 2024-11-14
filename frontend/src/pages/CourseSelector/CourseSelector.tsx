@@ -1,13 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useQuery } from '@tanstack/react-query';
-import { getUserCourses, getUserDegree } from 'utils/api/userApi';
+import { useUserCourses, useUserDegree } from 'utils/apiHooks/user';
 import openNotification from 'utils/openNotification';
 import infographic from 'assets/infographicFontIndependent.svg';
 import CourseDescriptionPanel from 'components/CourseDescriptionPanel';
 import PageTemplate from 'components/PageTemplate';
 import type { RootState } from 'config/store';
-import useToken from 'hooks/useToken';
 import { addTab } from 'reducers/courseTabsSlice';
 import CourseBanner from './CourseBanner';
 import CourseMenu from './CourseMenu';
@@ -15,17 +13,8 @@ import CourseTabs from './CourseTabs';
 import S from './styles';
 
 const CourseSelector = () => {
-  const token = useToken();
-
-  const coursesQuery = useQuery({
-    queryKey: ['courses'],
-    queryFn: () => getUserCourses(token)
-  });
-
-  const degreeQuery = useQuery({
-    queryKey: ['degree'],
-    queryFn: () => getUserDegree(token)
-  });
+  const coursesQuery = useUserCourses();
+  const degreeQuery = useUserDegree();
 
   const [showedNotif, setShowedNotif] = useState(false);
   useEffect(() => {

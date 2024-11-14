@@ -6,18 +6,20 @@ import {
   ZoomOutOutlined
 } from '@ant-design/icons';
 import type { Graph, GraphOptions, IG6GraphEvent, INode, Item } from '@antv/g6';
-import { useQuery } from '@tanstack/react-query';
 import { Switch } from 'antd';
 import { CourseEdge } from 'types/api';
 import { useDebouncedCallback } from 'use-debounce';
-import { getAllUnlockedCourses } from 'utils/api/coursesApi';
-import { getProgramGraph } from 'utils/api/programsApi';
-import { getUserCourses, getUserDegree, getUserPlanner } from 'utils/api/userApi';
+import { useProgramGraphQuery } from 'utils/apiHooks/static';
+import {
+  useUserAllUnlocked,
+  useUserCourses,
+  useUserDegree,
+  useUserPlanner
+} from 'utils/apiHooks/user';
 import { unwrapQuery } from 'utils/queryUtils';
 import Spinner from 'components/Spinner';
 import { useAppWindowSize } from 'hooks';
 import useSettings from 'hooks/useSettings';
-import useToken from 'hooks/useToken';
 import { ZOOM_IN_RATIO, ZOOM_OUT_RATIO } from '../constants';
 import {
   defaultEdge,
@@ -56,20 +58,10 @@ const CourseGraph = ({
   loading,
   setLoading
 }: Props) => {
-  const token = useToken();
+  const degreeQuery = useUserDegree();
+  const plannerQuery = useUserPlanner();
+  const coursesQuery = useUserCourses();
 
-  const degreeQuery = useQuery({
-    queryKey: ['degree'],
-    queryFn: () => getUserDegree(token)
-  });
-  const plannerQuery = useQuery({
-    queryKey: ['planner'],
-    queryFn: () => getUserPlanner(token)
-  });
-  const coursesQuery = useQuery({
-    queryKey: ['courses'],
-    queryFn: () => getUserCourses(token)
-  });
   const windowSize = useAppWindowSize();
   const { theme } = useSettings();
   const previousTheme = useRef<typeof theme>(theme);
@@ -82,27 +74,31 @@ const CourseGraph = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [showingUnlockedCourses, setShowingUnlockedCourses] = useState(false);
 
-  const programGraphQuery = useQuery({
-    queryKey: ['graph', { code: degreeQuery.data?.programCode, specs: degreeQuery.data?.specs }],
-    queryFn: () => getProgramGraph(degreeQuery.data!.programCode, degreeQuery.data!.specs),
-    enabled: !degreeQuery.isPending && degreeQuery.data && degreeQuery.isSuccess
-  });
+  const programGraphQuery = useProgramGraphQuery(
+    {
+      queryOptions: { enabled: !degreeQuery.isPending && degreeQuery.data && degreeQuery.isSuccess }
+    },
+    // TODO-olli: this is ugly, but we will need some interesting type rules to allow this otherwise
+    degreeQuery.data?.programCode ?? '',
+    degreeQuery.data?.specs ?? []
+  );
 
-  const coursesStateQuery = useQuery({
-    queryKey: ['courses', 'coursesState'],
-    queryFn: () => getAllUnlockedCourses(token)
-  });
+  const coursesStateQuery = useUserAllUnlocked();
+  const coursesStatePrevLastUpdated = useRef<number>(0); // used to repaint on invalidation
 
   const queriesSuccess =
     degreeQuery.isSuccess && coursesQuery.isSuccess && programGraphQuery.isSuccess;
 
-  useEffect(() => {
-    const isCoursePrerequisite = (target: string, neighbour: string) => {
+  const isCoursePrerequisite = useCallback(
+    (target: string, neighbour: string) => {
       const prereqs = prerequisites[target] || [];
       return prereqs.includes(neighbour);
-    };
+    },
+    [prerequisites]
+  );
 
-    const addNeighbourStyles = async (nodeItem: Item) => {
+  const addNeighbourStyles = useCallback(
+    async (nodeItem: Item) => {
       const node = nodeItem as INode;
       const neighbours = node.getNeighbors();
       const opacity = theme === 'light' ? 0.3 : 0.4;
@@ -136,9 +132,12 @@ const CourseGraph = ({
           graphRef.current?.updateItem(n as Item, mapNodePrereq(courseId, theme));
         }
       });
-    };
+    },
+    [isCoursePrerequisite, theme]
+  );
 
-    const removeNeighbourStyles = async (nodeItem: Item) => {
+  const removeNeighbourStyles = useCallback(
+    async (nodeItem: Item) => {
       const node = nodeItem as INode;
       const edges = node.getEdges();
       const { Arrow } = await import('@antv/g6');
@@ -160,19 +159,25 @@ const CourseGraph = ({
       graphRef.current?.getEdges().forEach((e) => {
         graphRef.current?.updateItem(e, mapEdgeOpacity(Arrow, theme, e.getID(), 1));
       });
-    };
+    },
+    [coursesQuery.data, coursesStateQuery.data?.courses_state, theme]
+  );
 
-    // On hover: add styles
-    const addHoverStyles = (ev: IG6GraphEvent) => {
+  // On hover: add styles
+  const addHoverStyles = useCallback(
+    (ev: IG6GraphEvent) => {
       const node = ev.item as Item;
       graphRef.current?.setItemState(node, 'hover', true);
       graphRef.current?.updateItem(node, nodeLabelHoverStyle(node.getID()));
       addNeighbourStyles(node);
       graphRef.current?.paint();
-    };
+    },
+    [addNeighbourStyles]
+  );
 
-    // On hover: remove styles
-    const addUnhoverStyles = (ev: IG6GraphEvent) => {
+  // On hover: remove styles
+  const addUnhoverStyles = useCallback(
+    (ev: IG6GraphEvent) => {
       const courses = unwrapQuery(coursesQuery.data);
       const node = ev.item as Item;
       graphRef.current?.clearItemStates(node, 'hover');
@@ -182,8 +187,45 @@ const CourseGraph = ({
       );
       removeNeighbourStyles(node);
       graphRef.current?.paint();
-    };
+    },
+    [coursesQuery.data, removeNeighbourStyles, theme]
+  );
 
+  // Without re-render, update styling for: each node, hovering state and edges
+  const repaintCanvas = useCallback(async () => {
+    const nodes = graphRef.current?.getNodes();
+    const courses = unwrapQuery(coursesQuery.data);
+    const coursesStates = coursesStateQuery.data?.courses_state ?? {};
+
+    nodes?.map((n) =>
+      graphRef.current?.updateItem(
+        n,
+        mapNodeStyle(n.getID(), n.getID() in courses, !!coursesStates[n.getID()]?.unlocked, theme)
+      )
+    );
+
+    graphRef.current?.off('node:mouseenter');
+    graphRef.current?.off('node:mouseleave');
+    graphRef.current?.on('node:mouseenter', async (ev) => {
+      addHoverStyles(ev);
+    });
+    graphRef.current?.on('node:mouseleave', async (ev) => {
+      addUnhoverStyles(ev);
+    });
+
+    const { Arrow } = await import('@antv/g6');
+    const edges = graphRef.current?.getEdges();
+    edges?.map((e) => graphRef.current?.updateItem(e, defaultEdge(Arrow, theme)));
+    graphRef.current?.paint();
+  }, [
+    addHoverStyles,
+    addUnhoverStyles,
+    coursesQuery.data,
+    coursesStateQuery.data?.courses_state,
+    theme
+  ]);
+
+  useEffect(() => {
     // Store a hashmap for performance reasons when highlighting nodes
     const makePrerequisitesMap = (edges: CourseEdge[] | undefined) => {
       const prereqs: CoursePrerequisite = prerequisites;
@@ -264,34 +306,6 @@ const CourseGraph = ({
       });
     };
 
-    // Without re-render, update styling for: each node, hovering state and edges
-    const repaintCanvas = async () => {
-      const nodes = graphRef.current?.getNodes();
-      const courses = unwrapQuery(coursesQuery.data);
-      const coursesStates = coursesStateQuery.data?.courses_state ?? {};
-
-      nodes?.map((n) =>
-        graphRef.current?.updateItem(
-          n,
-          mapNodeStyle(n.getID(), n.getID() in courses, !!coursesStates[n.getID()]?.unlocked, theme)
-        )
-      );
-
-      graphRef.current?.off('node:mouseenter');
-      graphRef.current?.off('node:mouseleave');
-      graphRef.current?.on('node:mouseenter', async (ev) => {
-        addHoverStyles(ev);
-      });
-      graphRef.current?.on('node:mouseleave', async (ev) => {
-        addUnhoverStyles(ev);
-      });
-
-      const { Arrow } = await import('@antv/g6');
-      const edges = graphRef.current?.getEdges();
-      edges?.map((e) => graphRef.current?.updateItem(e, defaultEdge(Arrow, theme)));
-      graphRef.current?.paint();
-    };
-
     const setupGraph = async () => {
       try {
         if (
@@ -311,11 +325,6 @@ const CourseGraph = ({
     };
 
     if (!initialisingStart.current) setupGraph();
-    // Change theme without re-render
-    if (previousTheme.current !== theme) {
-      previousTheme.current = theme;
-      repaintCanvas();
-    }
   }, [
     onNodeClick,
     degreeQuery,
@@ -325,8 +334,30 @@ const CourseGraph = ({
     coursesQuery.data,
     plannerQuery.data,
     programGraphQuery.data,
-    coursesStateQuery.data
+    coursesStateQuery.data,
+    addHoverStyles,
+    addUnhoverStyles,
+    repaintCanvas
   ]);
+
+  useEffect(() => {
+    // Change theme without re-render
+    if (previousTheme.current !== theme) {
+      previousTheme.current = theme;
+      repaintCanvas();
+    }
+  }, [repaintCanvas, theme]);
+
+  useEffect(() => {
+    // update unlocked courses without re-render
+    if (
+      coursesStatePrevLastUpdated.current !== 0 &&
+      coursesStatePrevLastUpdated.current !== coursesStateQuery.dataUpdatedAt
+    ) {
+      repaintCanvas();
+    }
+    coursesStatePrevLastUpdated.current = coursesStateQuery.dataUpdatedAt;
+  }, [repaintCanvas, coursesStateQuery.dataUpdatedAt]);
 
   // Show all nodes and edges once graph is initially loaded
   useEffect(() => {

@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CalendarOutlined, DeleteOutlined } from '@ant-design/icons';
-import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button, Tooltip, Typography } from 'antd';
 import { badCourses } from 'types/userResponse';
-import { removeAll } from 'utils/api/plannerApi';
-import { getUserCourses } from 'utils/api/userApi';
+import { useRemoveAllCoursesMutation, useUserCourses } from 'utils/apiHooks/user';
 import CourseCartCard from 'components/CourseCartCard';
-import useToken from 'hooks/useToken';
 import S from './styles';
 
 const { Text, Title } = Typography;
@@ -15,20 +12,10 @@ const { Text, Title } = Typography;
 const PlannerCart = () => {
   const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
-  const token = useToken();
 
-  const courses =
-    useQuery({
-      queryKey: ['courses'],
-      queryFn: () => getUserCourses(token),
-      enabled: showMenu,
-      staleTime: 100000
-    }).data ?? badCourses;
+  const courses = useUserCourses().data ?? badCourses;
 
-  const removeAllCourses = useMutation({
-    mutationKey: ['removeCourses'],
-    mutationFn: () => removeAll(token)
-  });
+  const removeAllCourses = useRemoveAllCoursesMutation();
 
   const pathname = useLocation();
 

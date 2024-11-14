@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Flex, Select, Spin, Typography } from 'antd';
 import { SearchCourse } from 'types/api';
 import { CoursesResponse } from 'types/userResponse';
 import { useDebounce } from 'use-debounce';
 import { searchCourse } from 'utils/api/coursesApi';
-import { addToUnplanned, removeCourse } from 'utils/api/plannerApi';
+import { useAddToUnplannedMutation, useRemoveCourseMutation } from 'utils/apiHooks/user';
 import QuickAddCartButton from 'components/QuickAddCartButton';
 import useToken from 'hooks/useToken';
 
@@ -49,17 +48,13 @@ const CourseSearchBar = ({ onSelectCallback, style, userCourses }: CourseSearchB
 
   const isInPlanner = (courseCode: string) => userCourses?.[courseCode] !== undefined;
 
-  const queryClient = useQueryClient();
-  const courseMutation = useMutation({
-    mutationFn: async (courseId: string) => {
-      const handleMutation = isInPlanner(courseId) ? removeCourse : addToUnplanned;
-      await handleMutation(token, courseId);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['courses'] });
-      await queryClient.invalidateQueries({ queryKey: ['planner'] });
-    }
-  });
+  const removeCourseMutation = useRemoveCourseMutation();
+  const addToUnplannedMutation = useAddToUnplannedMutation();
+
+  const courseMutation = (courseId: string) =>
+    isInPlanner(courseId)
+      ? removeCourseMutation.mutate(courseId)
+      : addToUnplannedMutation.mutate(courseId);
 
   const courses = Object.entries(searchResults).map(([courseCode, courseTitle]) => ({
     label: (
@@ -67,7 +62,7 @@ const CourseSearchBar = ({ onSelectCallback, style, userCourses }: CourseSearchB
         courseCode={courseCode}
         courseTitle={courseTitle}
         isPlanned={isInPlanner(courseCode)}
-        runMutate={courseMutation.mutate}
+        runMutate={courseMutation}
       />
     ),
     value: courseCode

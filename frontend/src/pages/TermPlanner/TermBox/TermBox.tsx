@@ -1,18 +1,15 @@
 import React, { Suspense } from 'react';
 import { LockFilled, UnlockFilled } from '@ant-design/icons';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from 'antd';
 import { useTheme } from 'styled-components';
 import { Course } from 'types/api';
 import { CourseTime } from 'types/courses';
 import { Term } from 'types/planner';
 import { ValidateResponse } from 'types/userResponse';
-import { toggleLockTerm } from 'utils/api/plannerApi';
-import { getUserCourses, getUserPlanner } from 'utils/api/userApi';
+import { useToggleLockTermMutation, useUserCourses, useUserPlanner } from 'utils/apiHooks/user';
 import { courseHasOffering } from 'utils/getAllCourseOfferings';
 import Spinner from 'components/Spinner';
 import useMediaQuery from 'hooks/useMediaQuery';
-import useToken from 'hooks/useToken';
 import DraggableCourse from '../DraggableCourse';
 import S from './styles';
 
@@ -37,34 +34,15 @@ const TermBox = ({
   termCourseCodes,
   draggingCourseCode
 }: Props) => {
-  const token = useToken();
   const year = name.slice(0, 4);
   const term = name.match(/T[0-3]/)?.[0] as Term;
   const theme = useTheme();
-  const queryClient = useQueryClient();
 
-  const plannerQuery = useQuery({
-    queryKey: ['planner'],
-    queryFn: () => getUserPlanner(token)
-  });
+  const plannerQuery = useUserPlanner();
 
-  const toggleLockTermMutation = useMutation({
-    mutationFn: () => toggleLockTerm(token, year, term),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['planner']
-      });
-    },
-    onError: (err) => {
-      // eslint-disable-next-line no-console
-      console.error('Error at toggleLockTermMutation: ', err);
-    }
-  });
+  const toggleLockTermMutation = useToggleLockTermMutation();
 
-  const coursesQuery = useQuery({
-    queryKey: ['courses'],
-    queryFn: () => getUserCourses(token)
-  });
+  const coursesQuery = useUserCourses();
   const isSmall = useMediaQuery('(max-width: 1400px)');
 
   if (!coursesQuery.data || !plannerQuery.data) {
@@ -75,7 +53,7 @@ const TermBox = ({
   const courses = coursesQuery.data;
 
   const handleToggleLockTerm = async () => {
-    toggleLockTermMutation.mutate();
+    toggleLockTermMutation.mutate({ term, year });
   };
 
   const termUOC = termCourseCodes.reduce((acc, code) => acc + termCourseInfos[code].UOC, 0);

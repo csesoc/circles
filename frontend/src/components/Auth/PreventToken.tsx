@@ -1,8 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
-import { getUserIsSetup } from 'utils/api/userApi';
+import { useUserSetupState } from 'utils/apiHooks/user';
 import PageLoading from 'components/PageLoading';
 import { useAppSelector } from 'hooks';
 import { selectToken } from 'reducers/identitySlice';
@@ -14,11 +13,9 @@ const PreventToken = () => {
     isPending,
     data: isSetup,
     error
-  } = useQuery({
-    queryKey: ['degree', 'isSetup'], // TODO-OLLI(pm): fix this key, including userId
-    queryFn: () => getUserIsSetup(token!),
-    enabled: token !== undefined,
-    refetchOnWindowFocus: 'always'
+  } = useUserSetupState({
+    allowUnsetToken: true,
+    queryOptions: { refetchOnWindowFocus: 'always' }
   });
 
   if (token === undefined) {

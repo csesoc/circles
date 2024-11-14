@@ -1,14 +1,15 @@
 import React, { Suspense } from 'react';
 import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { DatePicker, Modal, Select, Switch } from 'antd';
 import dayjs from 'dayjs';
 import { PlannerResponse } from 'types/userResponse';
-import { toggleSummerTerm, updateDegreeLength, updateStartYear } from 'utils/api/userApi';
-import openNotification from 'utils/openNotification';
+import {
+  useToggleSummerTermMutation,
+  useUpdateDegreeLengthMutation,
+  useUpdateStartYearMutation
+} from 'utils/apiHooks/user';
 import Spinner from 'components/Spinner';
 import useSettings from 'hooks/useSettings';
-import useToken from 'hooks/useToken';
 import CS from '../common/styles';
 
 type Props = {
@@ -16,11 +17,8 @@ type Props = {
 };
 
 const SettingsMenu = ({ planner }: Props) => {
-  const queryClient = useQueryClient();
-
   const { Option } = Select;
   const { theme } = useSettings();
-  const token = useToken();
 
   function willUnplanCourses(numYears: number) {
     if (!planner) return false;
@@ -34,21 +32,7 @@ const SettingsMenu = ({ planner }: Props) => {
     return false;
   }
 
-  const updateStartYearMutation = useMutation({
-    mutationFn: (year: string) => updateStartYear(token, year),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['planner']
-      });
-    },
-    onError: () => {
-      openNotification({
-        type: 'error',
-        message: 'Error setting degree start year',
-        description: 'There was an error updating the degree start year.'
-      });
-    }
-  });
+  const updateStartYearMutation = useUpdateStartYearMutation();
 
   const handleUpdateStartYear = async (_: unknown, dateString: string | string[]) => {
     if (dateString && typeof dateString === 'string') {
@@ -59,24 +43,7 @@ const SettingsMenu = ({ planner }: Props) => {
     }
   };
 
-  const updateDegreeLengthMutation = useMutation({
-    mutationFn: (numYears: number) => updateDegreeLength(token, numYears),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['planner']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['settings']
-      });
-    },
-    onError: () => {
-      openNotification({
-        type: 'error',
-        message: 'Error setting degree length',
-        description: 'There was an error updating the degree length.'
-      });
-    }
-  });
+  const updateDegreeLengthMutation = useUpdateDegreeLengthMutation();
 
   const handleUpdateDegreeLength = async (value: number) => {
     if (willUnplanCourses(value)) {
@@ -91,32 +58,7 @@ const SettingsMenu = ({ planner }: Props) => {
     }
   };
 
-  const summerToggleMutation = useMutation({
-    mutationFn: () => toggleSummerTerm(token),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['planner']
-      });
-
-      if (planner && planner.isSummerEnabled) {
-        openNotification({
-          type: 'info',
-          message: 'Your summer term courses have been unplanned',
-          description:
-            'Courses that were planned during summer terms have been unplanned including courses that have been planned across different terms.'
-        });
-      }
-    },
-    onError: (err) => {
-      // eslint-disable-next-line no-console
-      console.error('Error at summerToggleMutationMutation: ', err);
-      openNotification({
-        type: 'error',
-        message: 'Error setting summer term',
-        description: 'An error occurred when toggling the summer term.'
-      });
-    }
-  });
+  const summerToggleMutation = useToggleSummerTermMutation();
 
   const handleSummerToggle = async () => {
     summerToggleMutation.mutate();

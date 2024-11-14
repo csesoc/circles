@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, message } from 'antd';
-import { CourseMark } from 'types/api';
 import { Grade } from 'types/planner';
-import { updateCourseMark } from 'utils/api/plannerApi';
-import useToken from 'hooks/useToken';
+import { useUpdateMarkMutation } from 'utils/apiHooks/user';
 import S from './styles';
 
 type Props = {
@@ -14,9 +11,7 @@ type Props = {
 };
 
 const EditMarkModal = ({ code, open, onCancel }: Props) => {
-  const queryClient = useQueryClient();
   const [markValue, setMarkValue] = useState<string | number | undefined>();
-  const token = useToken();
 
   const letterGrades: Grade[] = ['SY', 'FL', 'PS', 'CR', 'DN', 'HD'];
 
@@ -26,23 +21,7 @@ const EditMarkModal = ({ code, open, onCancel }: Props) => {
     setMarkValue(value);
   };
 
-  const updateMarkMutation = useMutation({
-    mutationFn: (courseMark: CourseMark) => updateCourseMark(token, courseMark),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['courses']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['validate']
-      });
-      onCancel();
-      message.success('Mark Updated');
-    },
-    onError: (err) => {
-      // eslint-disable-next-line no-console
-      console.error('Error at updateMarkMutation:', err);
-    }
-  });
+  const updateMarkMutation = useUpdateMarkMutation();
 
   const handleUpdateMark = () => {
     if (!Number.isNaN(parseInt(markValue as string, 10))) {

@@ -1,11 +1,10 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { Progress, Rate, Typography } from 'antd';
 import { useTheme } from 'styled-components';
 import { Course } from 'types/api';
 import { EnrolmentCapacityData } from 'types/courseCapacity';
-import { getCourseRating } from 'utils/api/unilectivesApi';
+import { useCourseRatingQuery } from 'utils/apiHooks/static';
 import getMostRecentPastTerm from 'utils/getMostRecentPastTerm';
 import ProgressBar from 'components/ProgressBar';
 import TermTag from 'components/TermTag';
@@ -31,10 +30,7 @@ const CourseAttributes = ({ course, courseCapacity }: CourseAttributesProps) => 
   const sidebar = pathname === '/course-selector';
   const theme = useTheme();
 
-  const ratingQuery = useQuery({
-    queryKey: ['courseRating', course.code],
-    queryFn: () => getCourseRating(course.code)
-  });
+  const ratingQuery = useCourseRatingQuery({}, course.code);
   const rating = ratingQuery.data;
 
   const { study_level: studyLevel, terms, campus, code, school, UOC } = course;

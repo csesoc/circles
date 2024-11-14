@@ -1,31 +1,24 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { Typography } from 'antd';
 import { CoursesResponse } from 'types/userResponse';
-import { getCourseInfo, getCoursePrereqs, getCoursesUnlockedWhenTaken } from 'utils/api/coursesApi';
-import { getCourseTimetable } from 'utils/api/timetableApi';
+import {
+  useCourseInfoQuery,
+  useCoursePrereqsQuery,
+  useCourseTimetableQuery
+} from 'utils/apiHooks/static';
+import { useUserCoursesUnlockedWhenTaken } from 'utils/apiHooks/user';
 import getEnrolmentCapacity from 'utils/getEnrolmentCapacity';
-import { unwrapSettledPromise } from 'utils/queryUtils';
 import {
   LoadingCourseDescriptionPanel,
   LoadingCourseDescriptionPanelSidebar
 } from 'components/LoadingSkeleton';
 import PlannerButton from 'components/PlannerButton';
-import useToken from 'hooks/useToken';
 import CourseAttributes from './CourseAttributes';
 import CourseInfoDrawers from './CourseInfoDrawers';
 import S from './styles';
 
 const { Title, Text } = Typography;
-
-const getCourseExtendedInfo = async (courseCode: string) => {
-  return Promise.allSettled([
-    getCourseInfo(courseCode),
-    getCoursePrereqs(courseCode),
-    getCourseTimetable(courseCode)
-  ]);
-};
 
 type CourseDescriptionPanelProps = {
   className?: string;
@@ -40,20 +33,17 @@ const CourseDescriptionPanel = ({
   onCourseClick,
   courses
 }: CourseDescriptionPanelProps) => {
-  const token = useToken();
-
-  const coursesUnlockedQuery = useQuery({
-    queryKey: ['courses', 'coursesUnlockedWhenTaken', courseCode],
-    queryFn: () => getCoursesUnlockedWhenTaken(token, courseCode)
-  });
-
   const { pathname } = useLocation();
   const sidebar = pathname === '/course-selector';
 
-  const courseInfoQuery = useQuery({
-    queryKey: ['courseInfo', courseCode],
-    queryFn: () => getCourseExtendedInfo(courseCode)
-  });
+  const coursesUnlockedQuery = useUserCoursesUnlockedWhenTaken({}, courseCode);
+
+  const courseQuery = useCourseInfoQuery({}, courseCode);
+  const coursePrereqsQuery = useCoursePrereqsQuery({}, courseCode);
+  const courseCapacityQuery = useCourseTimetableQuery(
+    { queryOptions: { select: getEnrolmentCapacity, retry: 1, enabled: sidebar } }, // retry only once because we have bad error handling
+    courseCode
+  );
 
   const loadingWrapper = (
     <S.Wrapper $sidebar={sidebar}>
@@ -61,12 +51,16 @@ const CourseDescriptionPanel = ({
     </S.Wrapper>
   );
 
-  if (courseInfoQuery.isPending || !courseInfoQuery.isSuccess) return loadingWrapper;
+  if (
+    courseQuery.isPending ||
+    coursePrereqsQuery.isPending ||
+    (sidebar && courseCapacityQuery.isPending)
+  )
+    return loadingWrapper;
 
-  const [courseRes, pathFromRes, courseCapRes] = courseInfoQuery.data;
-  const course = unwrapSettledPromise(courseRes);
-  const coursesPathFrom = unwrapSettledPromise(pathFromRes)?.courses;
-  const courseCapacity = getEnrolmentCapacity(unwrapSettledPromise(courseCapRes));
+  const course = courseQuery.data;
+  const coursesPathFrom = coursePrereqsQuery.data?.courses;
+  const courseCapacity = courseCapacityQuery.data;
 
   // course wasn't fetchable (fatal; should do proper error handling instead of indefinitely loading)
   if (!course) return loadingWrapper;

@@ -1,16 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { scroller } from 'react-scroll';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Typography } from 'antd';
 import { DegreeWizardPayload } from 'types/degreeWizard';
-import { getSpecialisationTypes } from 'utils/api/specsApi';
-import { getUserIsSetup, resetUserDegree } from 'utils/api/userApi';
+import { useSpecTypesQuery } from 'utils/apiHooks/static';
+import { useResetDegreeMutation, useUserSetupState } from 'utils/apiHooks/user';
 import openNotification from 'utils/openNotification';
 import MigrationModal from 'components/MigrationModal';
 import PageTemplate from 'components/PageTemplate';
 import ResetModal from 'components/ResetModal';
-import useToken from 'hooks/useToken';
 import Steps from './common/steps';
 import DegreeStep from './DegreeStep';
 import SpecialisationStep from './SpecialisationStep';
@@ -23,7 +21,6 @@ const { Title } = Typography;
 const DEFAULT_SPEC_TYPES = ['majors', 'honours', 'minors'];
 
 const DegreeWizard = () => {
-  const token = useToken();
   const [currStep, setCurrStep] = useState(Steps.YEAR);
 
   const [degreeInfo, setDegreeInfo] = useState<DegreeWizardPayload>({
@@ -34,38 +31,19 @@ const DegreeWizard = () => {
   });
 
   const { programCode } = degreeInfo;
-  const isSetup = useQuery({
-    queryKey: ['degree', 'isSetup'], // TODO-OLLI(pm): fix this key
-    queryFn: () => getUserIsSetup(token)
-  }).data;
+  const isSetup = useUserSetupState().data;
   const navigate = useNavigate();
 
-  const specTypesQuery = useQuery({
-    queryKey: ['specialisations', 'types', programCode],
-    queryFn: () => getSpecialisationTypes(programCode),
-    select: (data) => data.types,
-    enabled: programCode !== ''
-  });
+  const specTypesQuery = useSpecTypesQuery(
+    {
+      queryOptions: { select: (data) => data.types, enabled: programCode !== '' }
+    },
+    programCode
+  );
   const specs = specTypesQuery.data ?? DEFAULT_SPEC_TYPES;
   const stepList = ['year', 'degree'].concat(specs).concat(['start browsing']);
 
-  const queryClient = useQueryClient();
-
-  const resetDegree = useMutation({
-    mutationFn: () => resetUserDegree(token),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['degree']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['courses']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['planner']
-      });
-      queryClient.clear();
-    }
-  });
+  const resetDegree = useResetDegreeMutation();
 
   useEffect(() => {
     openNotification({

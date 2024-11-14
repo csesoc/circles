@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CSELogin } from 'utils/api/authApi';
 import { getUserIsSetup } from 'utils/api/userApi';
+import { DEFAULT_USER_QUERY_OPTIONS } from 'utils/apiHooks/hookHelpers';
 import PageLoading from 'components/PageLoading';
 import { unsetIdentity, updateIdentityWithAPIRes } from 'reducers/identitySlice';
 
@@ -20,7 +21,8 @@ const LoginSuccess = () => {
 
         dispatch(updateIdentityWithAPIRes(identity));
         const userIsSetup = await queryClient.fetchQuery({
-          queryKey: ['degree', 'isSetup'], // TODO-OLLI(pm): fix this key
+          ...DEFAULT_USER_QUERY_OPTIONS,
+          queryKey: ['user', identity.uid, 'isSetup'], // HAS TO MATCH queries.ts
           queryFn: () => getUserIsSetup(identity.session_token)
         });
 
