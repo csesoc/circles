@@ -27,6 +27,7 @@ import openNotification from 'utils/openNotification';
 import PageTemplate from 'components/PageTemplate';
 import Spinner from 'components/Spinner';
 import { LIVE_YEAR } from 'config/constants';
+import useIdentity from 'hooks/useIdentity';
 import useSettings from 'hooks/useSettings';
 import { GridItem } from './common/styles';
 import HideYearTooltip from './HideYearTooltip';
@@ -69,6 +70,8 @@ type YearToCoursesMap = { [year: number]: { [code: string]: Course } };
 const TermPlanner = () => {
   const [draggingCourse, setDraggingCourse] = useState('');
   const { hiddenYears } = useSettings();
+
+  const { userId } = useIdentity();
 
   const queryClient = useQueryClient();
   const plannerPicRef = useRef<HTMLDivElement>(null);
@@ -120,17 +123,20 @@ const TermPlanner = () => {
   const setPlannedCourseToTermMutation = useSetPlannedCourseToTermMutation({
     mutationOptions: {
       onMutate: (data) => {
-        // TODO-olli
-        queryClient.setQueryData(['planner'], (prev: PlannerResponse | undefined) => {
-          if (!prev) return badPlanner;
-          const curr: PlannerResponse = structuredClone(prev);
-          curr.years[data.srcRow][data.srcTerm].splice(
-            curr.years[data.srcRow][data.srcTerm].indexOf(data.courseCode),
-            1
-          );
-          curr.years[data.destRow][data.destTerm].splice(data.destIndex, 0, data.courseCode);
-          return curr;
-        });
+        // TODO: match these keys with queries.ts
+        queryClient.setQueryData(
+          ['user', userId, 'planner'],
+          (prev: PlannerResponse | undefined) => {
+            if (!prev) return badPlanner;
+            const curr: PlannerResponse = structuredClone(prev);
+            curr.years[data.srcRow][data.srcTerm].splice(
+              curr.years[data.srcRow][data.srcTerm].indexOf(data.courseCode),
+              1
+            );
+            curr.years[data.destRow][data.destTerm].splice(data.destIndex, 0, data.courseCode);
+            return curr;
+          }
+        );
       }
     }
   });
@@ -143,13 +149,16 @@ const TermPlanner = () => {
     mutationOptions: {
       onMutate: (data) => {
         // TODO-olli
-        queryClient.setQueryData(['planner'], (prev: PlannerResponse | undefined) => {
-          if (!prev) return badPlanner;
-          const curr: PlannerResponse = structuredClone(prev);
-          curr.unplanned.splice(curr.unplanned.indexOf(data.courseCode), 1);
-          curr.years[data.destRow][data.destTerm].splice(data.destIndex, 0, data.courseCode);
-          return curr;
-        });
+        queryClient.setQueryData(
+          ['user', userId, 'planner'],
+          (prev: PlannerResponse | undefined) => {
+            if (!prev) return badPlanner;
+            const curr: PlannerResponse = structuredClone(prev);
+            curr.unplanned.splice(curr.unplanned.indexOf(data.courseCode), 1);
+            curr.years[data.destRow][data.destTerm].splice(data.destIndex, 0, data.courseCode);
+            return curr;
+          }
+        );
       }
     }
   });
@@ -162,16 +171,19 @@ const TermPlanner = () => {
     mutationOptions: {
       onMutate: (data) => {
         // TODO-olli: remove from here...
-        queryClient.setQueryData(['planner'], (prev: PlannerResponse | undefined) => {
-          if (!prev) return badPlanner;
-          const curr: PlannerResponse = structuredClone(prev);
-          curr.years[data.srcRow as number][data.srcTerm as string].splice(
-            curr.years[data.srcRow as number][data.srcTerm as string].indexOf(data.courseCode),
-            1
-          );
-          curr.unplanned.push(data.courseCode);
-          return curr;
-        });
+        queryClient.setQueryData(
+          ['user', userId, 'planner'],
+          (prev: PlannerResponse | undefined) => {
+            if (!prev) return badPlanner;
+            const curr: PlannerResponse = structuredClone(prev);
+            curr.years[data.srcRow as number][data.srcTerm as string].splice(
+              curr.years[data.srcRow as number][data.srcTerm as string].indexOf(data.courseCode),
+              1
+            );
+            curr.unplanned.push(data.courseCode);
+            return curr;
+          }
+        );
       }
     }
   });
