@@ -15,8 +15,9 @@ Step in the data's journey:
 """
 
 import re
-from data.utility.data_helpers import read_data, write_data
+
 from data.processors.programs_processing import TEST_PROGS
+from data.utility.data_helpers import read_data, write_data
 
 # TODO: add more specialisations as we expand scope of Circles
 
@@ -29,7 +30,7 @@ def customise_spn_data():
 
     data = read_data("data/scrapers/specialisationsFormattedRaw.json")
 
-    customised_data: dict = {}  # TODO: specify type # Dictionary for all customised data
+    customised_data: dict = {}  # TODO: specify type  # Dictionary for all customised data
     for spn in data.keys():
         if not any((prog in TEST_PROGS for prog in data[spn]["programs"])):
             continue
@@ -64,6 +65,8 @@ def customise_spn_data():
                     get_credits(container))
                 curriculum_item["core"] = is_core(
                     curriculum_item["title"].lower())
+
+                # print(spn, curriculum_item["title"], curriculum_item["courses"])
                 curriculum_item["levels"] = get_levels(
                     curriculum_item["title"].lower())
                 curriculum_item["notes"] = get_notes(container["description"])
@@ -228,11 +231,11 @@ def get_courses(
     Adds courses from container to the customised curriculum course dict.
     """
     for course, title in container_courses.items():
-        description = description + "" # prevent unused variable error
+        description = description + ""  # prevent unused variable error
 
-        if "any course" in course:
+        if "any course" in course.lower():
             course_processed = {"any course": "1"}
-        elif "any level" in course:
+        elif "any level" in course.lower():
             # e.g. modify "any level 4 COMP course" to "COMP4"
             course_processed = process_any_level(course)
         else:
@@ -241,20 +244,23 @@ def get_courses(
 
 def process_any_level(unprocessed_course: str) -> dict[str, str]:
     """
-    Processes 'any level X PROGRAM NAME course' into 'CODEX'
+    Processes 'any level X PROGRAM NAME course' or 
+    'any level X course/s offered by School of PROGRAM NAME'
+    into 'CODEX'
     """
-    # group 1 contains level number and group 2 contains program title
+    # group 1 contains level number and group 3 contains program title
     # Note '?:' means inner parentheses is non-capturing group
     # COMP4XXx
-    res = re.search(r"level (\d) ((?:[^ ]+ )+)(course)?", unprocessed_course)
+    res = re.search(r"[lL]evel (\d)(?:/(\d))? courses? offered by (?:the )?School of((?: [^ \n]+)+)", unprocessed_course)
     if not res:
+        res = re.search(r"[lL]evel (\d)(\/\d)? ((?:[^ ]+ )+)(course)?", unprocessed_course)
+    if not res: # our regexes can't handle its power
         print("ERRR BY: ", unprocessed_course)
-        # TODO: THIS IS BROKEN by `any level 1/2 ...`
         return {}
-        # continue
-        # raise Exception("processing any where it doesnt exist")
-    course_level = res.group(1).strip()
-    program_title = res.group(2).strip()
+    course_levels = [res.group(1).strip()]
+    if res.group(2):
+        course_levels.append(res.group(2))
+    program_title = res.group(3).strip()
 
     # Removes any "(CODE)" text in program title
     # e.g. changes "Computer Science (COMP) "
@@ -262,9 +268,8 @@ def process_any_level(unprocessed_course: str) -> dict[str, str]:
 
     # Find CODE mapping; if unsuccessful, do nothing
     program_code = CODE_MAPPING.get(program_title, program_title)
-    processed_course = program_code + course_level
 
-    return {processed_course: unprocessed_course}
+    return {(program_code + course_level): unprocessed_course for course_level in course_levels}
 
 
 if __name__ == "__main__":

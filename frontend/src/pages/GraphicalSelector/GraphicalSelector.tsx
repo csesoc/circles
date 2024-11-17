@@ -1,9 +1,10 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Tabs } from 'antd';
+import { badCourses } from 'types/userResponse';
+import { useUserCourses } from 'utils/apiHooks/user';
 import CourseSearchBar from 'components/CourseSearchBar';
 import PageTemplate from 'components/PageTemplate';
 import SidebarDrawer from 'components/SidebarDrawer';
-import { CourseDescInfoResCache } from '../../types/courseDescription';
 import CS from './common/styles';
 import { COURSE_INFO_TAB, HELP_TAB, PROGRAM_STRUCTURE_TAB } from './constants';
 import CourseGraph from './CourseGraph';
@@ -14,9 +15,9 @@ const GraphicalSelector = () => {
   const [fullscreen, setFullscreen] = useState(false);
   const [courseCode, setCourseCode] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(HELP_TAB);
+  const coursesQuery = useUserCourses();
   const [loading, setLoading] = useState(true);
-  const courseDescInfoCache = useRef({} as CourseDescInfoResCache);
-  const hasPlannerUpdated = useRef<boolean>(false);
+  const courses = coursesQuery.data || badCourses;
 
   const items = [
     {
@@ -27,8 +28,7 @@ const GraphicalSelector = () => {
           courseCode={courseCode}
           key={courseCode}
           onCourseClick={setCourseCode}
-          courseDescInfoCache={courseDescInfoCache}
-          hasPlannerUpdated={hasPlannerUpdated}
+          courses={courses}
         />
       ) : (
         <CS.TextWrapper>No course selected</CS.TextWrapper>
@@ -44,8 +44,8 @@ const GraphicalSelector = () => {
 
   return (
     <PageTemplate>
-      <S.Wrapper fullscreen={fullscreen}>
-        <S.GraphWrapper fullscreen={fullscreen}>
+      <S.Wrapper $fullscreen={fullscreen}>
+        <S.GraphWrapper $fullscreen={fullscreen}>
           <CourseGraph
             onNodeClick={(node) => {
               setCourseCode(node.getID());
@@ -54,13 +54,16 @@ const GraphicalSelector = () => {
             fullscreen={fullscreen}
             handleToggleFullscreen={() => setFullscreen((prevState) => !prevState)}
             focused={courseCode ?? undefined}
-            hasPlannerUpdated={hasPlannerUpdated}
             loading={loading}
             setLoading={setLoading}
           />
           {!loading && (
             <S.SearchBarWrapper>
-              <CourseSearchBar onSelectCallback={setCourseCode} style={{ width: '25rem' }} />
+              <CourseSearchBar
+                userCourses={coursesQuery.data}
+                onSelectCallback={setCourseCode}
+                style={{ width: '25rem' }}
+              />
             </S.SearchBarWrapper>
           )}
           {fullscreen && (

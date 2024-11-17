@@ -6,6 +6,7 @@ Step in the course data's journey:
 """
 
 import re
+
 from data.utility import data_helpers
 
 # Fields to keep in the processed file without modification from coursesFormattedRaw.json
@@ -139,7 +140,7 @@ def process_exclusions(processed: dict, formatted: dict) -> None:
         )
 
         # Clean and add any remaining plaintext to 'exclusions' field
-        patterns = ["<br/>", " ,", "[.,]\s*$",
+        patterns = ["<br/>", " ,", r"[.,]\s*$",
                     "^[.,]", "^and$", "enrolment in program"]
         exclusion_str = exclusion_str.strip()
         for pattern in patterns:

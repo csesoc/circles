@@ -17,7 +17,8 @@ export default defineConfig({
     },
     coverage: {
       provider: 'istanbul'
-    }
+    },
+    fileParallelism: false
   },
   resolve: {
     alias: [

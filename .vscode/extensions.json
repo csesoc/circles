@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "rvest.vs-code-prettier-eslint",
+        "dbaeumer.vscode-eslint",
+        "styled-components.vscode-styled-components",
+        "ms-python.vscode-pylance",
+        "ms-python.python",
+        "ms-python.pylint"
+    ]
+}

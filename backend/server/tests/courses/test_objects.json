@@ -25,7 +25,7 @@
       "gen_ed": true,
       "raw_requirements": "",
       "is_multiterm": false,
-      "is_legacy": true
+      "is_legacy": false
     },
     "comp1511_2020": {
       "title": "Programming Fundamentals",
@@ -52,7 +52,7 @@
       "gen_ed": true,
       "raw_requirements": "",
       "is_multiterm": false,
-      "is_legacy": true
+      "is_legacy": false
     },
     "comp1511_2021": {
       "title": "Programming Fundamentals",
@@ -79,7 +79,7 @@
       "gen_ed": true,
       "raw_requirements": "",
       "is_multiterm": false,
-      "is_legacy": true
+      "is_legacy": false
     },
     "comp1511_2022": {
       "title": "Programming Fundamentals",
@@ -106,7 +106,7 @@
       "gen_ed": 1,
       "raw_requirements": "",
       "is_multiterm": false,
-      "is_legacy": true
+      "is_legacy": false
     },
     "math3361_2019": {
       "title": "Stochastic Differential Equations: Theory, Applications, and Numerical Methods",
@@ -126,7 +126,7 @@
       "gen_ed": false,
       "raw_requirements": "",
       "is_multiterm": false,
-      "is_legacy": true
+      "is_legacy": false
     },
     "math3361_2020": {
       "title": "Stochastic Differential Equations: Theory, Applications, and Numerical Methods",
@@ -146,7 +146,7 @@
       "gen_ed": false,
       "raw_requirements": "Prerequisite: MATH2011 or MATH2111 or MATH2018 (DN) or MATH2019(DN) or MATH2069(DN) and MATH2801 or MATH2901 or MATH2089(DN) or MATH2099(DN)",
       "is_multiterm": false,
-      "is_legacy": true
+      "is_legacy": false
     },
     "math3361_2021": {
       "title": "Stochastic Differential Equations: Theory, Applications, and Numerical Methods",
@@ -166,7 +166,7 @@
       "gen_ed": false,
       "raw_requirements": "Prerequisite: MATH2011 or MATH2111 or MATH2018 (DN) or MATH2019(DN) or MATH2069(DN) and MATH2801 or MATH2901 or MATH2089(DN) or MATH2099(DN)",
       "is_multiterm": false,
-      "is_legacy": true
+      "is_legacy": false
     },
     "math3361_2022": {
       "title": "Stochastic Differential Equations: Theory, Applications, and Numerical Methods",
@@ -184,7 +184,7 @@
       "gen_ed": 0,
       "raw_requirements": "Prerequisite: MATH2011 or MATH2111 or MATH2018 (DN) or MATH2019(DN) or MATH2069(DN) and MATH2801 or MATH2901 or MATH2089(DN) or MATH2099(DN)",
       "is_multiterm": false,
-      "is_legacy": true
+      "is_legacy": false
     }
   }
 }

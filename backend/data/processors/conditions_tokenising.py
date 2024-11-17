@@ -11,6 +11,7 @@ For example:
 """
 
 import re
+
 from data.utility import data_helpers
 
 PARSED_LOGIC: dict[str, list[str]] = {}

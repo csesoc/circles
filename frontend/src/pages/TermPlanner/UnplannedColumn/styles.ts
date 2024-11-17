@@ -1,10 +1,10 @@
 import styled, { css } from 'styled-components';
 import { Droppable, GridItem } from '../common/styles';
 
-const UnplannedContainer = styled.div<{ summerEnabled: boolean }>`
+const UnplannedContainer = styled.div<{ $summerEnabled: boolean }>`
   grid-row-start: 1;
   grid-row-end: span 10;
-  grid-column-start: ${({ summerEnabled }) => (summerEnabled ? 6 : 5)};
+  grid-column-start: ${({ $summerEnabled }) => ($summerEnabled ? 6 : 5)};
   display: flex;
   flex-direction: column;
   place-self: stretch;
@@ -23,9 +23,9 @@ const UnplannedTitle = styled(GridItem)`
 `;
 
 type UnplannedBoxProps = {
-  droppable: boolean;
-  summerEnabled: boolean;
-  isSmall: boolean;
+  $droppable: boolean;
+  $summerEnabled: boolean;
+  $isSmall: boolean;
 };
 
 const UnplannedBox = styled.ul<UnplannedBoxProps>`
@@ -61,10 +61,10 @@ const UnplannedBox = styled.ul<UnplannedBoxProps>`
     background-color: #fff;
   }
 
-  ${({ droppable }) => droppable && Droppable}
+  ${({ $droppable }) => $droppable && Droppable}
 
-  ${({ summerEnabled }) =>
-    summerEnabled &&
+  ${({ $summerEnabled }) =>
+    $summerEnabled &&
     css`
       // sum of heights from the top of the page for where the unplanned header should be
       // for summer term
@@ -82,16 +82,16 @@ const UnplannedBox = styled.ul<UnplannedBoxProps>`
       padding-top: 0.5em;
     `}
 
-  ${({ isSmall }) =>
-    isSmall &&
+  ${({ $isSmall }) =>
+    $isSmall &&
     css`
       border-radius: 1em;
       min-width: 12em;
     `}
 
-  ${({ isSmall, summerEnabled }) =>
-    isSmall &&
-    summerEnabled &&
+  ${({ $isSmall, $summerEnabled }) =>
+    $isSmall &&
+    $summerEnabled &&
     css`
       border-radius: 1em;
       min-width: 13em;

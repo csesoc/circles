@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { scroller } from 'react-scroll';
-import { Typography } from 'antd';
-import axios from 'axios';
-import { SpecialisationTypes } from 'types/api';
+import { Button, Typography } from 'antd';
+import { DegreeWizardPayload } from 'types/degreeWizard';
+import { useSpecTypesQuery } from 'utils/apiHooks/static';
+import { useResetDegreeMutation, useUserSetupState } from 'utils/apiHooks/user';
 import openNotification from 'utils/openNotification';
+import MigrationModal from 'components/MigrationModal';
 import PageTemplate from 'components/PageTemplate';
 import ResetModal from 'components/ResetModal';
-import type { RootState } from 'config/store';
-import { useAppSelector } from 'hooks';
 import Steps from './common/steps';
 import DegreeStep from './DegreeStep';
 import SpecialisationStep from './SpecialisationStep';
@@ -18,11 +18,32 @@ import YearStep from './YearStep';
 
 const { Title } = Typography;
 
+const DEFAULT_SPEC_TYPES = ['majors', 'honours', 'minors'];
+
 const DegreeWizard = () => {
-  const [specs, setSpecs] = useState(['majors', 'honours', 'minors']);
-  const stepList = ['year', 'degree'].concat(specs).concat(['start browsing']);
-  const degree = useAppSelector((state: RootState) => state.degree);
+  const [currStep, setCurrStep] = useState(Steps.YEAR);
+
+  const [degreeInfo, setDegreeInfo] = useState<DegreeWizardPayload>({
+    programCode: '',
+    startYear: undefined,
+    endYear: undefined,
+    specs: []
+  });
+
+  const { programCode } = degreeInfo;
+  const isSetup = useUserSetupState().data;
   const navigate = useNavigate();
+
+  const specTypesQuery = useSpecTypesQuery(
+    {
+      queryOptions: { select: (data) => data.types, enabled: programCode !== '' }
+    },
+    programCode
+  );
+  const specs = specTypesQuery.data ?? DEFAULT_SPEC_TYPES;
+  const stepList = ['year', 'degree'].concat(specs).concat(['start browsing']);
+
+  const resetDegree = useResetDegreeMutation();
 
   useEffect(() => {
     openNotification({
@@ -33,30 +54,20 @@ const DegreeWizard = () => {
     });
   }, []);
 
-  useEffect(() => {
-    const getSteps = async () => {
-      try {
-        const res = await axios.get<SpecialisationTypes>(
-          `/specialisations/getSpecialisationTypes/${degree.programCode}`
-        );
-        setSpecs(res.data.types);
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('Error at getSteps', e);
-      }
-    };
-    if (degree.programCode !== '') getSteps();
-  }, [degree.programCode]);
-
-  const [currStep, setCurrStep] = useState(Steps.YEAR);
-
   const incrementStep = (stepTo?: Steps) => {
     const step = stepTo ? stepList[stepTo] : stepList[currStep + 1];
+    // if spec, then that's chillll
     if (stepTo === Steps.SPECS) {
       setCurrStep(stepTo);
+      // no step or its more than curr step
+      // then we go forwards a state?????????????
+      // not spec, or its null, :(
+      // not defined HOWEVER (this may falsely trigger when stepTo is 0)
     } else if (!stepTo || stepTo > currStep) {
       setCurrStep((prevState) => prevState + 1);
     }
+    // we can increment a step IF it moves forwards
+
     setTimeout(() => {
       scroller.scrollTo(step, {
         duration: 1500,
@@ -65,18 +76,40 @@ const DegreeWizard = () => {
     }, 100);
   };
 
+  const handleLogout = () => {
+    navigate('/logout');
+  };
+
+  const [migrationNeeded, setMigrationNeeded] = useState(localStorage.getItem('oldUser') !== null);
+
   return (
-    <PageTemplate showHeader={false}>
+    <PageTemplate showHeader={false} showBugButton={false}>
       <S.ContainerWrapper>
-        <ResetModal open={degree.isComplete} onCancel={() => navigate('/course-selector')} />
+        <MigrationModal
+          open={migrationNeeded}
+          onOk={() => setMigrationNeeded(false)}
+          onCancel={() => setMigrationNeeded(false)}
+        />
+        <ResetModal
+          open={isSetup && !migrationNeeded}
+          onCancel={() => navigate('/course-selector')}
+          onOk={() => resetDegree.mutate()}
+        />
         <Title className="text">Welcome to Circles!</Title>
-        <S.Subtitle>
-          Let’s start by setting up your UNSW degree, so you can make a plan that suits you.
-        </S.Subtitle>
+        <S.HeaderWrapper>
+          <S.Subtitle>
+            Let’s start by setting up your UNSW degree, so you can make a plan that suits you.
+          </S.Subtitle>
+          <Button danger onClick={handleLogout}>
+            Logout
+          </Button>
+        </S.HeaderWrapper>
         <S.HorizontalLine />
         <S.StepsWrapper>
-          <YearStep incrementStep={incrementStep} />
-          {currStep >= Steps.DEGREE && <DegreeStep incrementStep={incrementStep} />}
+          <YearStep incrementStep={incrementStep} setDegreeInfo={setDegreeInfo} />
+          {currStep >= Steps.DEGREE && (
+            <DegreeStep incrementStep={incrementStep} setDegreeInfo={setDegreeInfo} />
+          )}
           {specs.map(
             (stepName, index) =>
               currStep - Steps.SPECS >= index && (
@@ -84,10 +117,12 @@ const DegreeWizard = () => {
                   incrementStep={incrementStep}
                   currStep={currStep - Steps.SPECS === index}
                   type={stepName}
+                  degreeInfo={degreeInfo}
+                  setDegreeInfo={setDegreeInfo}
                 />
               )
           )}
-          {currStep === stepList.length - 1 && <StartBrowsingStep />}
+          {currStep >= Steps.DONE && <StartBrowsingStep degreeInfo={degreeInfo} />}
         </S.StepsWrapper>
       </S.ContainerWrapper>
     </PageTemplate>

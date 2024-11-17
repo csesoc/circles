@@ -1,6 +1,5 @@
-# pylint: disable=missing-function-docstring
-# pylint: disable=missing-module-docstring
 # assumes that getPrograms, getMajors, and getMinors isnt borked.
+import copy
 import requests
 from hypothesis import given, settings
 from hypothesis.strategies import composite, sampled_from
@@ -15,7 +14,10 @@ fake_specs = ["NAVLAH", "GMATEH", "ARCYB2"]
 
 @composite
 def major_minor_for_program(draw):
-    program = draw(sampled_from(programs))
+    possible_programs = copy.deepcopy(programs)
+    # possible_programs.remove("3362") # City Planning (Honours) does not have majors/minors
+
+    program = draw(sampled_from(possible_programs))
     possible_specs: list[str] = []
     for t in requests.get(f"http://127.0.0.1:8000/specialisations/getSpecialisationTypes/{program}").json()["types"]:
         majorsRequest = requests.get(f"http://127.0.0.1:8000/specialisations/getSpecialisations/{program}/{t}")
@@ -39,7 +41,7 @@ def major_minor_for_program(draw):
 def test_all_programs_fetched(program):
     structure = requests.get(f"http://127.0.0.1:8000/programs/getStructure/{program}")
     assert structure != 500
-    structure.json()["structure"]["General"] != {}
+    assert structure.json()["structure"]["General"] != {}
 
 @given(major_minor_for_program())
 @settings(deadline=1500)

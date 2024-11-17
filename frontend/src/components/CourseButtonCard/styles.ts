@@ -27,7 +27,7 @@ const CourseTitle = styled.p`
   -webkit-box-orient: vertical;
 `;
 
-const CourseButtonCard = styled(Button)<{ planned?: boolean }>`
+const CourseButtonCard = styled(Button)<{ $planned?: boolean }>`
   border-radius: 10px;
   border-width: 1px;
   width: 270px;
@@ -39,8 +39,8 @@ const CourseButtonCard = styled(Button)<{ planned?: boolean }>`
   justify-content: space-between;
   gap: 5px;
 
-  ${({ planned }) =>
-    !planned &&
+  ${({ $planned }) =>
+    !$planned &&
     css`
       background: #fafafa;
       border-color: #dcdcdc;

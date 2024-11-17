@@ -3,18 +3,25 @@ api and also run the files"""
 
 import argparse
 import sys
-# https://github.com/encode/uvicorn/issues/998
-import uvicorn # type: ignore
 
-from server.database import overwrite_all
-from server.server import app
+import uvicorn
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--overwrite",
+        "--overwrite-course-data",
         action="store_true",
-        help="Inclusion of option will overwrite the database",
+        help="Inclusion of option will force overwrite the courses database",
+    )
+    parser.add_argument(
+        "--overwrite-all-data",
+        action="store_true",
+        help="Inclusion of option will force overwrite the entire database (including users)",
+    )
+    parser.add_argument(
+        "--dev",
+        action="store_true",
+        help="Inclusion of option will enable hot-reloading and smart-overwrite"
     )
 
     try:
@@ -23,7 +30,28 @@ if __name__ == "__main__":
         parser.print_help()
         sys.exit(0)
 
-    if args.overwrite:
-        overwrite_all()
+    print(
+        "-- Running server with CLI options:",
+        ", ".join(f"{k}={v}" for k, v in vars(args).items())
+    )
+    if args.overwrite_course_data or args.overwrite_all_data or args.dev:
+        # TODO-OLLI(pm): abstract this, and remove these local imports once we have proper connection handling
+        # TODO-OLLI(pm): also do overwrite checks for dev mode using a timestamp
+        # TODO-OLLI: dont we always want to atleast setup the dbs???
+        from server.db.mongo.setup import setup_mongo_collections
+        from server.db.redis.setup import setup_redis_sessionsdb
 
-    uvicorn.run(app, host='0.0.0.0')
+        setup_mongo_collections(clear_users=args.overwrite_all_data)
+        print(f"-- Finished Mongo Setup (drop users={args.overwrite_all_data})")
+
+        setup_redis_sessionsdb()
+        print("-- Finished Redis Setup")
+
+    print(f"-- Starting uvicorn(reload={args.dev})")
+    uvicorn.run(
+        "server.server:app",
+        host='0.0.0.0',
+        lifespan="on",
+        reload=args.dev,
+        reload_excludes="*.json" if args.dev else None,
+    )

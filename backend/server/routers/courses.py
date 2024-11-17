@@ -1,36 +1,34 @@
 """
 APIs for the /courses/ route.
 """
-from contextlib import suppress
 import pickle
 import re
-from typing import Dict, List, Mapping, Optional, Set, Tuple
-from algorithms.objects.program_restrictions import NoRestriction
-from algorithms.objects.user import User
-from data.config import ARCHIVED_YEARS, GRAPH_CACHE_FILE, LIVE_YEAR
-from data.utility.data_helpers import read_data
-from fastapi import APIRouter, HTTPException
-from fuzzywuzzy import fuzz # type: ignore
-from server.database import archivesDB, coursesCOL
-from server.routers.model import (CACHED_HANDBOOK_NOTE, CONDITIONS, CourseCodes,
-                                  CourseDetails, CoursesState, CoursesPath,
-                                  CoursesUnlockedWhenTaken, ProgramCourses, TermsList,
-                                  UserData, TermsOffered, CoursesPathDict)
-from server.routers.utility import get_core_courses, map_suppressed_errors
-from algorithms.create_program import PROGRAM_RESTRICTIONS_PICKLE_FILE
-from algorithms.objects.program_restrictions import ProgramRestriction
+from contextlib import suppress
+from typing import Annotated, Dict, List, Optional, Set, Tuple
 
+from algorithms.create_program import PROGRAM_RESTRICTIONS_PICKLE_FILE
+from algorithms.objects.program_restrictions import NoRestriction, ProgramRestriction
+from algorithms.objects.user import User
+from data.config import ARCHIVED_YEARS
+from fastapi import APIRouter, HTTPException, Security
+from fuzzywuzzy import fuzz  # type: ignore
+from server.routers.utility.sessions.middleware import HTTPBearerToUserID
+from server.routers.utility.user import get_setup_user, user_storage_to_algo_user
+from server.db.mongo.conn import archivesDB, coursesCOL
+from server.routers.model import (CACHED_HANDBOOK_NOTE, CONDITIONS, CourseCodes, CourseDetails, CourseState, CoursesPath,
+                                  CoursesPathDict, CoursesState, CoursesUnlockedWhenTaken, ProgramCourses, TermsList,
+                                  TermsOffered)
+from server.routers.utility.common import get_course_details, get_incoming_edges, get_legacy_course_details, get_program_structure, get_terms_offered_multiple_years
 
 router = APIRouter(
     prefix="/courses",
     tags=["courses"],
 )
 
+require_uid = HTTPBearerToUserID()
+
 # TODO: would prefer to initialise ALL_COURSES here but that fails on CI for some reason
 ALL_COURSES: Optional[Dict[str, str]] = None
-CODE_MAPPING: Dict = read_data("data/utility/programCodeMappings.json")["title_to_code"]
-GRAPH: Dict[str, Dict[str, List[str]]] = read_data(GRAPH_CACHE_FILE)
-INCOMING_ADJACENCY: Dict[str, List[str]] = GRAPH.get("incoming_adjacency_list", {})
 
 def fetch_all_courses() -> Dict[str, str]:
     """
@@ -59,20 +57,20 @@ def fetch_all_courses() -> Dict[str, str]:
     return ALL_COURSES
 
 
-def fix_user_data(userData: dict):
-    """ Updates and returns the userData with the UOC of a course """
-    coursesWithoutUoc = [
-        course
-        for course in userData["courses"]
-        if not isinstance(userData["courses"][course], list)
-    ]
-    filledInCourses = {
-        course: [get_course(course)["UOC"], userData["courses"][course]]
-        for course in coursesWithoutUoc
-    }
-    userData["courses"].update(filledInCourses)
-    userData["core_courses"] = get_core_courses(userData["program"], list(userData["specialisations"]))
-    return userData
+def get_all_course_states_for_user(user: User) -> dict[str, CourseState]:
+    coursesState: dict[str, CourseState] = {}
+
+    for course, condition in CONDITIONS.items():
+        result, warnings = condition.validate(user) if condition is not None else (True, [])
+        if result:
+            coursesState[course] = CourseState(
+                is_accurate=condition is not None,
+                unlocked=result,
+                handbook_note=CACHED_HANDBOOK_NOTE.get(course, ""),
+                warnings=warnings,
+            )
+
+    return coursesState
 
 
 @router.get("/")
@@ -91,7 +89,7 @@ def get_courses() -> list[Dict]:
     Gets all courses in the database.
     (For CSElectives)
     """
-    
+
     def generate_course(course, is_legacy):
         course["is_legacy"] = is_legacy
         course.setdefault("school", None)
@@ -102,7 +100,7 @@ def get_courses() -> list[Dict]:
 
     all_courses = fetch_all_courses()
 
-    courses = dict()
+    courses = {}
     for course in coursesCOL.find():
         courses[course["code"]] = generate_course(course, False)
 
@@ -160,33 +158,17 @@ def get_courses() -> list[Dict]:
         },
     },
 )
-def get_course(courseCode: str) -> Dict:
+def get_course(courseCode: str):
     """
     Get info about a course given its courseCode
     - start with the current database
     - if not found, check the archives
     """
-    result = coursesCOL.find_one({"code": courseCode})
-    if not result:
-        for year in sorted(ARCHIVED_YEARS, reverse=True):
-            result = archivesDB[str(year)].find_one({"code": courseCode})
-            if result is not None:
-                result.setdefault("raw_requirements", "")
-                result["is_legacy"] = True
-                break
-    else:
-        result["is_legacy"] = False
+    result = get_course_details(courseCode)
 
-    if not result:
-        raise HTTPException(
-            status_code=400, detail=f"Course code {courseCode} was not found"
-        )
-    result.setdefault("school", None)
     result['is_accurate'] = CONDITIONS.get(courseCode) is not None
     result['handbook_note'] = CACHED_HANDBOOK_NOTE.get(courseCode, "")
-    del result["_id"]
-    with suppress(KeyError):
-        del result["exclusions"]["leftover_plaintext"]
+
     return result
 
 
@@ -217,7 +199,7 @@ def get_course(courseCode: str) -> Dict:
         }
     },
 )
-def search(userData: UserData, search_string: str) -> Dict[str, str]:
+def search(search_string: str, uid: Annotated[str, Security(require_uid)]) -> Dict[str, str]:
     """
     Search for courses with regex
     e.g. search(COMP1) would return
@@ -226,14 +208,13 @@ def search(userData: UserData, search_string: str) -> Dict[str, str]:
           "COMP1531": "SoftEng Fundamentals",
             ……. }
     """
-    from server.routers.programs import get_structure
-
     all_courses = fetch_all_courses()
 
-    specialisations = list(userData.specialisations)
+    user = get_setup_user(uid)
+    specialisations = list(user['degree']['specs'])
     majors = list(filter(lambda x: x.endswith("1") or x.endswith("H"), specialisations))
     minors = list(filter(lambda x: x.endswith("2"), specialisations))
-    structure = get_structure(userData.program, "+".join(specialisations))['structure']
+    structure = get_program_structure(user['degree']['programCode'], specs=specialisations)[0]
 
     top_results = sorted(all_courses.items(), reverse=True,
                          key=lambda course: fuzzy_match(course, search_string)
@@ -247,23 +228,6 @@ def search(userData: UserData, search_string: str) -> Dict[str, str]:
                               )[:30]
 
     return dict(weighted_results)
-
-def regex_search(search_string: str) -> Mapping[str, str]:
-    """
-    Uses the search string as a regex to match all courses with an exact pattern.
-    """
-
-    pat = re.compile(search_string, re.I)
-    courses = list(coursesCOL.find({"code": {"$regex": pat}}))
-
-    # TODO: do we want to always include matching legacy courses (excluding duplicates)?
-    if not courses:
-        for year in sorted(ARCHIVED_YEARS, reverse=True):
-            courses = list(archivesDB[str(year)].find({"code": {"$regex": pat}}))
-            if courses:
-                break
-
-    return {course["code"]: course["title"] for course in courses}
 
 
 @router.post(
@@ -288,27 +252,17 @@ def regex_search(search_string: str) -> Mapping[str, str]:
         },
     },
 )
-def get_all_unlocked(userData: UserData) -> Dict[str, Dict]:
+def get_all_unlocked(uid: Annotated[str, Security(require_uid)]) -> CoursesState:
     """
     Given the userData and a list of locked courses, returns the state of all
     the courses. Note that locked courses always return as True with no warnings
     since it doesn't make sense for us to tell the user they can't take a course
     that they have already completed
     """
-
-    coursesState = {}
-    user = User(fix_user_data(userData.dict()))
-    for course, condition in CONDITIONS.items():
-        result, warnings = condition.validate(user) if condition is not None else (True, [])
-        if result:
-            coursesState[course] = {
-                "is_accurate": condition is not None,
-                "unlocked": result,
-                "handbook_note": CACHED_HANDBOOK_NOTE.get(course, ""),
-                "warnings": warnings,
-            }
-
-    return {"courses_state": coursesState}
+    user = get_setup_user(uid)
+    algo_user = user_storage_to_algo_user(user)
+    courses_states = get_all_course_states_for_user(algo_user)
+    return CoursesState(courses_state=courses_states)
 
 
 @router.get(
@@ -355,16 +309,12 @@ def get_legacy_courses(year, term) -> Dict[str, Dict[str, str]]:
 
 
 @router.get("/getLegacyCourse/{year}/{courseCode}")
-def get_legacy_course(year: str, courseCode: str) -> Dict:
+def get_legacy_course(year: str, courseCode: str):
     """
         Like /getCourse/ but for legacy courses in the given year.
         Returns information relating to the given course
     """
-    result = archivesDB[year].find_one({"code": courseCode})
-    if not result:
-        raise HTTPException(status_code=400, detail="invalid course code or year")
-    del result["_id"]
-    result["is_legacy"] = True
+    result = get_legacy_course_details(courseCode, year)
     return result
 
 
@@ -386,12 +336,15 @@ def get_legacy_course(year: str, courseCode: str) -> Dict:
                      }
                  }
             })
-def unselect_course(userData: UserData, unselectedCourse: str) -> dict[str, list[str]]:
+def unselect_course(uid: Annotated[str, Security(require_uid)], unselectedCourse: str) -> dict[str, list[str]]:
     """
     Creates a new user class and returns all the courses
     affected from the course that was unselected in alphabetically sorted order
+
+    NOTE: No longer in use...
     """
-    user = User(fix_user_data(userData.dict()))
+    user_data = get_setup_user(uid)
+    user = user_storage_to_algo_user(user_data)
     if not user.has_taken_course(unselectedCourse):
         return { 'courses' : [] }
 
@@ -448,12 +401,10 @@ def get_path_from(course: str) -> CoursesPathDict:
     fetches courses which can be used to satisfy 'course'
     eg 2521 -> 1511
     """
-    out: List[str] = list(INCOMING_ADJACENCY.get(course, []))
     return {
         "original" : course,
-        "courses" : out,
+        "courses" : get_incoming_edges(course),
     }
-
 
 @router.post("/coursesUnlockedWhenTaken/{courseToBeTaken}", response_model=CoursesUnlockedWhenTaken,
             responses={
@@ -470,14 +421,17 @@ def get_path_from(course: str) -> CoursesPathDict:
                     }
                 }
             })
-def courses_unlocked_when_taken(userData: UserData, courseToBeTaken: str) -> Dict[str, List[str]]:
+def courses_unlocked_when_taken(uid: Annotated[str, Security(require_uid)], courseToBeTaken: str) -> Dict[str, List[str]]:
     """ Returns all courses which are unlocked when given course is taken """
+    user = get_setup_user(uid)
+    algo_user = user_storage_to_algo_user(user)
+
     ## initial state
-    courses_initially_unlocked = unlocked_set(get_all_unlocked(userData)['courses_state'])
+    courses_initially_unlocked = unlocked_set(get_all_course_states_for_user(algo_user))
     ## add course to the user
-    userData.courses[courseToBeTaken] = [get_course(courseToBeTaken)['UOC'], None]
+    algo_user.add_courses({ courseToBeTaken: (get_course_details(courseToBeTaken)['UOC'], None) })
     ## final state
-    courses_now_unlocked = unlocked_set(get_all_unlocked(userData)['courses_state'])
+    courses_now_unlocked = unlocked_set(get_all_course_states_for_user(algo_user))
     new_courses = courses_now_unlocked - courses_initially_unlocked
 
     ## Differentiate direct and indirect unlocks
@@ -537,14 +491,10 @@ def terms_offered(course: str, years:str) -> TermsOffered:
             fails: [(year, exception)]
         }
     """
-    fails: list[tuple] = []
-    terms = {
-        year: map_suppressed_errors(get_term_offered, fails, course, year) or []
-        for year in years.split("+")
-    }
+    offerings, fails = get_terms_offered_multiple_years(course, years.split("+"))
 
     return {
-        "terms": terms,
+        "terms": offerings,
         "fails": fails,
     }
 
@@ -556,9 +506,9 @@ def terms_offered(course: str, years:str) -> TermsOffered:
 ###############################################################################
 
 
-def unlocked_set(courses_state) -> Set[str]:
+def unlocked_set(courses_state: dict[str, CourseState]) -> Set[str]:
     """ Fetch the set of unlocked courses from the courses_state of a getAllUnlocked call """
-    return set(course for course in courses_state if courses_state[course]['unlocked'])
+    return set(course for course in courses_state if courses_state[course].unlocked)
 
 def is_course_unlocked(course: str, user: User) -> Tuple[bool, List[str]]:
     """
@@ -575,7 +525,7 @@ def is_course_unlocked(course: str, user: User) -> Tuple[bool, List[str]]:
     program_restriction = get_program_restriction(user.program) or NoRestriction()
     program_result = program_restriction.validate_course_allowed(user, course)
 
-    return (course_result and program_result), (course_warnings + program_warnings),
+    return (course_result and program_result), (course_warnings + program_warnings)
 
 def fuzzy_match(course: Tuple[str, str], search_term: str) -> float:
     """ Gives the course a weighting based on the relevance to the search """
@@ -591,13 +541,14 @@ def fuzzy_match(course: Tuple[str, str], search_term: str) -> float:
                sum(fuzz.partial_ratio(title.lower(), word)
                        for word in search_term.split(' ')))
 
-def weight_course(
-        course: tuple[str, str], search_term: str, structure: dict,
-                  majors: list, minors: list) -> float:
+def weight_course(course: tuple[str, str], search_term: str, structure: dict, majors: list, minors: list) -> float:
     """ Gives the course a weighting based on the relevance to the user's degree """
     weight = fuzzy_match(course, search_term)
     code, _ = course
 
+    # TODO: could this function be refactored to generate a mapping of all codes to their weight deltas for a given structure,
+    #       and then we wouldn't need to run this on every course code?
+    # pylint: disable-next=too-many-nested-blocks  # TODO: refactor
     for structKey in structure.keys():
         if "Major" not in structKey:
             continue
@@ -616,6 +567,7 @@ def weight_course(
             weight += 14
             break
 
+    # pylint: disable-next=too-many-nested-blocks  # TODO: refactor
     for structKey in structure.keys():
         if "Minor" not in structKey:
             continue
@@ -636,22 +588,6 @@ def weight_course(
 
     return weight
 
-def get_course_info(course: str, year: str | int = LIVE_YEAR) -> Dict:
-    """
-    Returns the course info for the given course and year.
-    If no year is given, the current year is used.
-    If the year is not the LIVE_YEAR, then uses legacy information
-    """
-    return get_course(course) if int(year) == int(LIVE_YEAR) else get_legacy_course(str(year), course)
-
-def get_term_offered(course: str, year: int | str=LIVE_YEAR) -> list[str]:
-    """
-    Returns the terms in which the given course is offered, for the given year.
-    If the year is from the future then, backfill the LIVE_YEAR's results
-    """
-    year_to_fetch: int | str = LIVE_YEAR if int(year) > LIVE_YEAR else year
-    return get_course_info(course, year_to_fetch).get("terms", [])
-
 def get_program_restriction(program_code: Optional[str]) -> Optional[ProgramRestriction]:
     """
     Returns the program restriction for the given program code.
@@ -661,6 +597,7 @@ def get_program_restriction(program_code: Optional[str]) -> Optional[ProgramRest
     # TODO: This loading should not be here; very slow
     # making it global causes some errors
     # There needs to be a startup event for routers to load data
+    # TODO-OLLI(pm): ^ we now have a global startup event, we can setup and cache pickle data there
     if not program_code:
         return None
     with open(PROGRAM_RESTRICTIONS_PICKLE_FILE, "rb") as file:

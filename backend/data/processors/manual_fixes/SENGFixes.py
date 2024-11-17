@@ -28,7 +28,8 @@ def fix_conditions():
     # Removed
     # CONDITIONS["SENG3991"] = SENG_3991(CONDITIONS["SENG3991"])
     # CONDITIONS["SENG3992"] = SENG_3992(CONDITIONS["SENG3992"])
-    CONDITIONS["SENG4920"][PROCESSED] = SENG_4920()
+    if "SENG4920" in CONDITIONS:
+        CONDITIONS["SENG4920"][PROCESSED] = SENG_4920()
 
     data_helpers.write_data(
         CONDITIONS, "data/final_data/conditionsProcessed.json")

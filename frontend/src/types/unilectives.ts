@@ -1,0 +1,25 @@
+export type UnilectivesCourse = {
+  courseCode: string;
+  archived: boolean;
+  // attributes: any[];
+  calendar: string;
+  campus: string;
+  description: string;
+  enrolmentRules: string;
+  equivalents: string[];
+  exclusions: string[];
+  faculty: string;
+  fieldOfEducation: string;
+  genEd: boolean;
+  level: number;
+  school: string;
+  studyLevel: string;
+  terms: number[];
+  title: string;
+  uoc: number;
+  overallRating: number;
+  manageability: number;
+  usefulness: number;
+  enjoyability: number;
+  reviewCount: number;
+};

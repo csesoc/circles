@@ -1,5 +1,4 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
 import { Typography } from 'antd';
 import step1Dark from 'assets/GraphicalSelectorHelp/step1-dark.jpg';
 import step1Light from 'assets/GraphicalSelectorHelp/step1-light.jpg';
@@ -11,14 +10,14 @@ import step4Dark from 'assets/GraphicalSelectorHelp/step4-dark.jpg';
 import step4Light from 'assets/GraphicalSelectorHelp/step4-light.jpg';
 import step5Dark from 'assets/GraphicalSelectorHelp/step5-dark.jpg';
 import step5Light from 'assets/GraphicalSelectorHelp/step5-light.jpg';
-import type { RootState } from 'config/store';
+import useSettings from 'hooks/useSettings';
 import CS from '../common/styles';
 import S from './styles';
 
 const { Title } = Typography;
 
 const HowToUse = () => {
-  const { theme } = useSelector((state: RootState) => state.settings);
+  const { theme } = useSettings();
 
   const step = (num: number) => {
     const pics = {

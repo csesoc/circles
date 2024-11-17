@@ -6,6 +6,10 @@ type Route = {
 
 const routes: Route[] = [
   {
+    label: 'Degree Wizard',
+    link: '/degree-wizard'
+  },
+  {
     label: 'Course Selector',
     link: '/course-selector'
   },
@@ -21,6 +25,10 @@ const routes: Route[] = [
   {
     label: 'Progression Checker',
     link: '/progression-checker'
+  },
+  {
+    label: 'Logout',
+    link: '/logout'
   }
 ];
 

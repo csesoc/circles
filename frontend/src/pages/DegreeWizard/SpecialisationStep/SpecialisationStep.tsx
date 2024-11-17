@@ -1,80 +1,77 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React from 'react';
 import { animated, useSpring } from '@react-spring/web';
-import type { MenuProps } from 'antd';
-import { Button, Typography } from 'antd';
-import axios from 'axios';
-import { Specialisations } from 'types/api';
+import { Button, Select, Typography } from 'antd';
+import { DegreeWizardPayload } from 'types/degreeWizard';
+import { useSpecsForProgramQuery } from 'utils/apiHooks/static';
 import openNotification from 'utils/openNotification';
 import Spinner from 'components/Spinner';
-import type { RootState } from 'config/store';
-import { useAppDispatch, useAppSelector } from 'hooks';
-import { addSpecialisation, removeSpecialisation } from 'reducers/degreeSlice';
 import springProps from '../common/spring';
 import Steps from '../common/steps';
 import CS from '../common/styles';
-import S from './styles';
 
 const { Title } = Typography;
+
+type SetState<T> = React.Dispatch<React.SetStateAction<T>>;
 
 type Props = {
   incrementStep: (stepTo?: Steps) => void;
   currStep?: boolean;
   type: string;
+  degreeInfo: DegreeWizardPayload;
+  setDegreeInfo: SetState<DegreeWizardPayload>;
 };
 
-type Specialisation = {
-  [spec: string]: {
-    is_optional?: boolean;
-    specs: Record<string, string>;
-    notes: string;
-  };
-};
-
-const SpecialisationStep = ({ incrementStep, currStep, type }: Props) => {
+const SpecialisationStep = ({
+  incrementStep,
+  currStep,
+  type,
+  degreeInfo,
+  setDegreeInfo
+}: Props) => {
   const props = useSpring(springProps);
-  const dispatch = useAppDispatch();
-  const { programCode, specs } = useAppSelector((store: RootState) => store.degree);
-  const [options, setOptions] = useState<Specialisation | null>(null);
 
-  const fetchAllSpecialisations = useCallback(async () => {
-    try {
-      const res = await axios.get<Specialisations>(
-        `/specialisations/getSpecialisations/${programCode}/${type}`
-      );
-      setOptions(res.data.spec);
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('Error at getSteps', e);
-    }
-  }, [programCode, type]);
+  const handleAddSpecialisation = (specialisation: string) => {
+    setDegreeInfo((prev) => ({
+      ...prev,
+      specs: [...prev.specs, specialisation]
+    }));
+  };
 
-  useEffect(() => {
-    if (programCode) fetchAllSpecialisations();
-  }, [fetchAllSpecialisations, programCode, type]);
+  const handleRemoveSpecialisation = (specialisation: string) => {
+    setDegreeInfo((prev) => ({
+      ...prev,
+      specs: prev.specs.filter((spec) => spec !== specialisation)
+    }));
+  };
 
-  const menuItems: MenuProps['items'] = options
-    ? Object.keys(options).map((program, index) => ({
+  const specsQuery = useSpecsForProgramQuery(
+    {
+      queryOptions: { select: (data) => data.spec, enabled: degreeInfo.programCode !== '' }
+    },
+    degreeInfo.programCode,
+    type
+  );
+  const options = specsQuery.data;
+
+  type SelectGroup = {
+    label: string;
+    note: string | undefined;
+    children: {
+      label: string;
+      value: string;
+    }[];
+  };
+
+  const selectGroups: SelectGroup[] | undefined = options
+    ? Object.keys(options).map((program) => ({
         label: `${type.replace(/^\w/, (c) => c.toUpperCase())} for ${program}`,
-        key: index,
-        children: options[program].notes
-          ? [
-              {
-                label: `Note: ${options[program].notes}`,
-                type: 'group',
-                children: Object.keys(options[program].specs)
-                  .sort()
-                  .map((spec) => ({
-                    label: `${spec} ${options[program].specs[spec]}`,
-                    key: spec
-                  }))
-              }
-            ]
-          : Object.keys(options[program].specs)
-              .sort()
-              .map((spec) => ({
-                label: `${spec} ${options[program].specs[spec]}`,
-                key: spec
-              }))
+        note: options[program].notes,
+        children: Object.keys(options[program].specs)
+          .sort()
+          .map((spec) => ({
+            label: `${spec} ${options[program].specs[spec]}`,
+            value: spec
+          }))
       }))
     : undefined;
 
@@ -83,7 +80,7 @@ const SpecialisationStep = ({ incrementStep, currStep, type }: Props) => {
   if (options) {
     Object.keys(options).forEach((specKey) => {
       const { is_optional: isOptional, specs: optionSpecs } = options[specKey];
-      if (!isOptional || specs.some((spec) => Object.keys(optionSpecs).includes(spec))) {
+      if (!isOptional || degreeInfo.specs.some((spec) => Object.keys(optionSpecs).includes(spec))) {
         optionalStep = false;
       }
     });
@@ -96,7 +93,7 @@ const SpecialisationStep = ({ incrementStep, currStep, type }: Props) => {
       const { is_optional: isOptional, specs: optionSpecs } = options[specKey];
       if (
         !isOptional &&
-        !specs.some((spec) => Object.keys(optionSpecs).includes(spec)) &&
+        !degreeInfo.specs.some((spec) => Object.keys(optionSpecs).includes(spec)) &&
         !missingSpec
       ) {
         missingSpec = specKey;
@@ -123,20 +120,27 @@ const SpecialisationStep = ({ incrementStep, currStep, type }: Props) => {
             </Button>
           )}
         </CS.StepHeadingWrapper>
-        {menuItems ? (
-          <S.Menu
-            onSelect={(e) => dispatch(addSpecialisation(e.key))}
-            onDeselect={(e) => dispatch(removeSpecialisation(e.key))}
-            selectedKeys={specs}
-            defaultOpenKeys={['0']}
-            mode="inline"
-            style={{
-              gap: '10px',
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-            items={menuItems}
-          />
+        {selectGroups ? (
+          selectGroups.map((group) => (
+            <animated.div style={{ ...props, marginBottom: '1rem' }} key={group.label}>
+              <Title level={5}>{group.label}</Title>
+              {group.note && <p>{group.note}</p>}
+              <Select
+                disabled={specsQuery.isLoading}
+                mode="multiple"
+                style={{ width: '100%' }}
+                allowClear
+                placeholder={`Select ${type.substring(0, type.length - 1)}s`}
+                defaultValue={[]}
+                options={group.children}
+                onSelect={(value) => handleAddSpecialisation(value)}
+                onDeselect={(value) => handleRemoveSpecialisation(value)}
+                onClear={() => {
+                  group.children.forEach((child) => handleRemoveSpecialisation(child.value));
+                }}
+              />
+            </animated.div>
+          ))
         ) : (
           <Spinner text={`Loading ${type}...`} />
         )}

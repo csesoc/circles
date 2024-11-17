@@ -6,8 +6,8 @@ import { Popconfirm, Switch, Tooltip } from 'antd';
 import DraggableTab from 'components/DraggableTab';
 import Spinner from 'components/Spinner';
 import type { RootState } from 'config/store';
+import useSettings from 'hooks/useSettings';
 import { reorderTabs, resetTabs, setActiveTab } from 'reducers/courseTabsSlice';
-import { toggleLockedCourses } from 'reducers/settingsSlice';
 import S from './styles';
 
 const DragDropContext = React.lazy(() =>
@@ -20,7 +20,7 @@ const Droppable = React.lazy(() =>
 const CourseTabs = () => {
   const dispatch = useDispatch();
   const { tabs } = useSelector((state: RootState) => state.courseTabs);
-  const { showLockedCourses } = useSelector((state: RootState) => state.settings);
+  const { showLockedCourses, toggleLockedCourses } = useSettings();
 
   const handleOnDragStart: OnDragStartResponder = (result) => {
     dispatch(setActiveTab(result.source.index));
@@ -49,10 +49,10 @@ const CourseTabs = () => {
           size="small"
           data-testid="show-all-courses"
           defaultChecked={showLockedCourses}
-          onChange={() => dispatch(toggleLockedCourses())}
+          onChange={() => toggleLockedCourses()}
         />
       </S.ShowAllCourses>
-      <Suspense fallback={<Spinner text="Loading tabs..." />}>
+      <Suspense fallback={<Spinner text="loading tabs..." size="small" />}>
         <DragDropContext onDragEnd={handleOnDragEnd} onDragStart={handleOnDragStart}>
           <Droppable droppableId="droppable" direction="horizontal">
             {(droppableProvided) => (
@@ -61,7 +61,7 @@ const CourseTabs = () => {
                 {...droppableProvided.droppableProps}
               >
                 {tabs.map((tab, index) => (
-                  <DraggableTab tabName={tab} index={index} />
+                  <DraggableTab tabName={tab} index={index} key={`draggable-tab-${tab}`} />
                 ))}
                 {droppableProvided.placeholder}
               </S.CourseTabsSection>

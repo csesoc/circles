@@ -1,77 +1,91 @@
 import React, { Suspense } from 'react';
 import { useContextMenu } from 'react-contexify';
-import { useSelector } from 'react-redux';
-import ReactTooltip from 'react-tooltip';
+import { Tooltip as ReactTooltip } from 'react-tooltip';
 import { InfoCircleOutlined, PieChartOutlined, WarningOutlined } from '@ant-design/icons';
-import { Badge, Typography } from 'antd';
+import { Typography } from 'antd';
 import { useTheme } from 'styled-components';
-import { Term } from 'types/planner';
+import { Course } from 'types/api';
+import { CourseTime } from 'types/courses';
+import { CoursesResponse, PlannerResponse, ValidateResponse } from 'types/userResponse';
 import { courseHasOffering } from 'utils/getAllCourseOfferings';
+import getMostRecentPastTerm from 'utils/getMostRecentPastTerm';
 import Spinner from 'components/Spinner';
-import type { RootState } from 'config/store';
 import useMediaQuery from 'hooks/useMediaQuery';
+import useSettings from 'hooks/useSettings';
 import ContextMenu from '../ContextMenu';
-import { getNumTerms } from '../utils';
 import S from './styles';
 
 type Props = {
-  code: string;
+  planner: PlannerResponse;
+  courses: CoursesResponse;
+  validate?: ValidateResponse;
+  courseInfo: Course;
   index: number;
-  term: string;
-  showMultiCourseBadge: boolean;
+  time?: CourseTime;
 };
 
 const Draggable = React.lazy(() =>
   import('react-beautiful-dnd').then((plot) => ({ default: plot.Draggable }))
 );
 
-const DraggableCourse = ({ code, index, term, showMultiCourseBadge }: Props) => {
-  const { courses, isSummerEnabled, completedTerms } = useSelector(
-    (state: RootState) => state.planner
-  );
-  const planner = useSelector((state: RootState) => state.planner);
-  const { showMarks } = useSelector((state: RootState) => state.settings);
+const DraggableCourse = ({ planner, validate, courses, courseInfo, index, time }: Props) => {
+  const { isSummerEnabled } = planner;
+  const { showMarks, showPastWarnings } = useSettings();
   const theme = useTheme();
   const { Text } = Typography;
 
-  // prereqs are populated in CourseDescription.jsx via course.raw_requirements
-  const {
-    title,
-    isUnlocked,
-    plannedFor,
-    isLegacy,
-    isAccurate,
-    handbookNote,
-    supressed,
-    ignoreFromProgression,
-    mark
-  } = courses[code];
-  const warningMessage = courses[code].warnings;
+  const courseIsPastTerm = (t: CourseTime): boolean => {
+    const mostRecentPastTerm = getMostRecentPastTerm(planner.startYear);
+    const courseYear = parseInt(t.year, 10) - planner.startYear + 1;
+    const courseTerm = parseInt(t.term.slice(1), 10);
+    return (
+      courseYear < mostRecentPastTerm.Y ||
+      (courseYear === mostRecentPastTerm.Y && courseTerm <= mostRecentPastTerm.T)
+    );
+  };
 
-  const isOffered = plannedFor
-    ? courseHasOffering(courses[code], plannedFor.slice(0, 4), term as Term)
-    : true;
-  const BEwarnings = handbookNote !== '' || !!warningMessage.length;
+  // If the user has asked to ignore warnings for past terms, check if the course is in a past term
+  const ignoreWarnings = time && !showPastWarnings && courseIsPastTerm(time);
+
+  // prereqs are populated in CourseDescription.jsx via course.raw_requirements
+  const { title, code } = courseInfo;
+  // TODO: Change the backend so that naming is universally in camelCase so we don't have to do this
+  const { is_legacy: isLegacy, handbook_note: handbookNote } = courseInfo;
+  const {
+    is_accurate: isAccurate,
+    unlocked: isUnlocked,
+    warnings: warningMessage
+  } = validate || {
+    is_accurate: true,
+    warnings: [],
+    unlocked: true,
+    handbook_note: ''
+  };
+
+  const hasOffering = time ? courseHasOffering(courseInfo, time.term) : true;
 
   const contextMenu = useContextMenu({
     id: `${code}-context`
   });
 
-  const isDragDisabled = !!plannedFor && !!completedTerms[plannedFor];
+  const BEwarnings = handbookNote || warningMessage.length !== 0;
+
+  const isTermLocked = time ? planner.lockedTerms[`${time.year}${time.term}`] ?? false : false;
 
   const isSmall = useMediaQuery('(max-width: 1400px)');
+  // TODO: Fix these boolean checks for warnings
   const shouldHaveWarning =
-    !supressed && (isLegacy || !isUnlocked || BEwarnings || !isAccurate || !isOffered);
+    !ignoreWarnings && (isLegacy || !isUnlocked || BEwarnings || !isAccurate || !hasOffering);
   const errorIsInformational =
     shouldHaveWarning &&
     isUnlocked &&
     warningMessage.length === 0 &&
     !isLegacy &&
     isAccurate &&
-    isOffered;
+    hasOffering;
 
   const handleContextMenu = (e: React.MouseEvent) => {
-    if (!isDragDisabled) contextMenu.show({ event: e });
+    if (!isTermLocked) contextMenu.show({ event: e });
   };
 
   const stripExtraParenthesis = (warning: string): string => {
@@ -93,22 +107,21 @@ const DraggableCourse = ({ code, index, term, showMultiCourseBadge }: Props) => 
     return stripExtraParenthesis(warning.slice(1, warning.length - 1));
   };
 
-  const multiCourseBadgeStyle = {
-    backgroundColor: theme.uocBadge.backgroundColor,
-    boxShadow: 'none'
-  };
-
   return (
     <>
       <Suspense fallback={<Spinner text="Loading Course..." />}>
-        <Draggable isDragDisabled={isDragDisabled} draggableId={`${code}${term}`} index={index}>
+        <Draggable
+          isDragDisabled={isTermLocked}
+          draggableId={`${code}${time?.term ?? 'unplanned'}`}
+          index={index}
+        >
           {(provided) => (
             <S.CourseWrapper
-              summerEnabled={isSummerEnabled}
-              isSmall={isSmall}
-              dragDisabled={isDragDisabled}
-              warningsDisabled={isDragDisabled && !isUnlocked}
-              isWarning={!supressed && (!isUnlocked || !isOffered)}
+              $summerEnabled={isSummerEnabled}
+              $isSmall={isSmall}
+              $dragDisabled={isTermLocked}
+              $warningsDisabled={isTermLocked && !isUnlocked}
+              $isWarning={!ignoreWarnings && (!isUnlocked || !hasOffering)}
               {...provided.draggableProps}
               {...provided.dragHandleProps}
               ref={provided.innerRef}
@@ -118,7 +131,7 @@ const DraggableCourse = ({ code, index, term, showMultiCourseBadge }: Props) => 
               id={code}
               onContextMenu={handleContextMenu}
             >
-              {!isDragDisabled &&
+              {!isTermLocked &&
                 shouldHaveWarning &&
                 (errorIsInformational ? (
                   <InfoCircleOutlined style={{ color: theme.infoOutlined.color }} />
@@ -127,7 +140,7 @@ const DraggableCourse = ({ code, index, term, showMultiCourseBadge }: Props) => 
                     style={{ fontSize: '16px', color: theme.warningOutlined.color }}
                   />
                 ))}
-              {ignoreFromProgression && (
+              {courses[code].ignoreFromProgression && (
                 <PieChartOutlined style={{ color: theme.infoOutlined.color }} />
               )}
               <S.CourseLabel>
@@ -151,18 +164,11 @@ const DraggableCourse = ({ code, index, term, showMultiCourseBadge }: Props) => 
                           Marks can be strings (i.e. HD, CR) or a number (i.e. 90, 85).
                           Mark can be 0.
                         */}
-                      {typeof mark === 'string' || typeof mark === 'number' ? mark : 'N/A'}
+                      {courses[code]?.mark || courses[code]?.mark === 0
+                        ? courses[code].mark
+                        : 'N/A'}
                     </Text>
                   </div>
-                )}
-                {showMultiCourseBadge && (
-                  <S.MultiCourseBadgeWrapper>
-                    <Badge
-                      style={multiCourseBadgeStyle}
-                      size="small"
-                      count={`x${getNumTerms(planner.courses[code].UOC, true).toString()}`}
-                    />
-                  </S.MultiCourseBadgeWrapper>
                 )}
               </S.CourseLabel>
             </S.CourseWrapper>
@@ -171,37 +177,34 @@ const DraggableCourse = ({ code, index, term, showMultiCourseBadge }: Props) => 
       </Suspense>
       <ContextMenu
         code={code}
-        plannedFor={plannedFor}
-        ignoreFromProgression={ignoreFromProgression}
+        ignoreFromProgression={courses[code].ignoreFromProgression}
+        plannedFor={courses[code].plannedFor}
       />
       {/* display prereq tooltip for all courses. However, if a term is marked as complete
         and the course has no warning, then disable the tooltip */}
       {isSmall && (
-        <ReactTooltip id={code} place="top" effect="solid">
+        <ReactTooltip anchorSelect={`#${code}`} place="top" style={{ zIndex: 10 }}>
           {title}
         </ReactTooltip>
       )}
-      {!isDragDisabled && shouldHaveWarning && (
-        <ReactTooltip id={code} place="bottom">
+      {!isTermLocked && shouldHaveWarning && (
+        <ReactTooltip anchorSelect={`#${code}`} place="bottom" style={{ zIndex: 10 }}>
           {isLegacy ? (
             'This course is discontinued. If an equivalent course is currently being offered, please pick that instead.'
-          ) : !isOffered ? (
+          ) : !hasOffering ? (
             'The course is not offered in this term.'
           ) : warningMessage.length !== 0 ? (
             stripExtraParenthesis(warningMessage.join('\n'))
           ) : (
-            // eslint-disable-next-line react/no-danger
+            // eslint-disable-next-line react/no-danger -- TODO: we really should remove this when we figure out better formatting strings
             <div dangerouslySetInnerHTML={{ __html: handbookNote }} />
           )}
           {/* TODO: Fix fullstops. example: "48 UoC required in all courses you have 36 This course will not be included ..."
            */}
           {!isAccurate ? ' The course info may be inaccurate.' : ''}
-          {ignoreFromProgression ? ' This course will not be included in your progression.' : ''}
-        </ReactTooltip>
-      )}
-      {ignoreFromProgression && !(!isDragDisabled && shouldHaveWarning) && (
-        <ReactTooltip id={code} place="bottom">
-          This course will not be included in your progression.
+          {courses[code].ignoreFromProgression
+            ? ' This course will not be included in your progression.'
+            : ''}
         </ReactTooltip>
       )}
     </>

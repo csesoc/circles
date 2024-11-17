@@ -2,8 +2,8 @@
 
 import json
 import re
-from sys import exit
 from enum import Enum
+from sys import exit
 
 
 class Logic(Enum):
@@ -26,7 +26,7 @@ def get_uoc(text: str) -> int:
     """ Given a text in the format of ???UOC, will extract the uoc and return as an int """
     uoc_str = re.match(r"^(\d+)UOC$", text, flags=re.IGNORECASE)
     if not uoc_str:
-        raise Exception("trying to fetch UOC where it doesnt exist!")
+        raise KeyError("trying to fetch UOC where it doesnt exist!")
     return int(uoc_str.group(1))
 
 
@@ -34,7 +34,7 @@ def get_level_category(text: str) -> int:
     """ will extract the L? and return as an int """
     level_str = re.match(r"^L([0-9])$", text, flags=re.IGNORECASE)
     if not level_str:
-        raise Exception("trying to fetch level category where it doesnt exist!")
+        raise KeyError("trying to fetch level category where it doesnt exist!")
     return int(level_str.group(1))
 
 
@@ -42,7 +42,7 @@ def get_course_category(text: str) -> str:
     """ will extract the course category """
     level_str = re.match(r"^([A-Z]{4})$", text, flags=re.IGNORECASE)
     if not level_str:
-        raise Exception("trying to fetch course category where it doesnt exist!")
+        raise KeyError("trying to fetch course category where it doesnt exist!")
     return level_str.group(1)
 
 
@@ -55,7 +55,7 @@ def get_wam(text) -> int:
     """ Given a text in the format of ???WAM, will extract the wam and return as a int """
     wam_str = re.match(r"^(\d+)WAM$", text)
     if not wam_str:
-        raise Exception("trying to fetch WAM where it doesnt exist!")
+        raise KeyError("trying to fetch WAM where it doesnt exist!")
     return int(wam_str.group(1))
 
 
@@ -71,7 +71,7 @@ def get_grade(text) -> int:
     """
     grade_str = re.match(r"^(\d+)GRADE$", text)
     if not grade_str:
-        raise Exception("trying to fetch GRADE where it doesnt exist!")
+        raise KeyError("trying to fetch GRADE where it doesnt exist!")
     return int(grade_str.group(1))
 
 

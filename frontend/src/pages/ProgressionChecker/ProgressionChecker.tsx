@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
 import {
   BorderlessTableOutlined,
   EyeFilled,
@@ -7,8 +6,6 @@ import {
   TableOutlined
 } from '@ant-design/icons';
 import { Button, Divider, Typography } from 'antd';
-import axios from 'axios';
-import { Structure } from 'types/api';
 import {
   ProgressionAdditionalCourses,
   ProgressionViewStructure,
@@ -17,12 +14,14 @@ import {
   ViewSubgroupCourse
 } from 'types/progressionViews';
 import { ProgramStructure } from 'types/structure';
+import { badCourses, badPlanner } from 'types/userResponse';
+import { useStructureQuery } from 'utils/apiHooks/static';
+import { useUserCourses, useUserDegree, useUserPlanner } from 'utils/apiHooks/user';
 import getNumTerms from 'utils/getNumTerms';
 import openNotification from 'utils/openNotification';
 import Collapsible from 'components/Collapsible';
 import PageTemplate from 'components/PageTemplate';
 import { MAX_COURSES_OVERFLOW } from 'config/constants';
-import type { RootState } from 'config/store';
 import Dashboard from './Dashboard';
 import GenericCoursesSection from './GenericCoursesSection';
 import GridView from './GridView';
@@ -32,29 +31,25 @@ import TableView from './TableView';
 const { Title } = Typography;
 
 const ProgressionChecker = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [structure, setStructure] = useState<ProgramStructure>({});
-  const [uoc, setUoc] = useState(0);
+  const plannerQuery = useUserPlanner();
+  const planner = plannerQuery.data ?? badPlanner;
+  const { unplanned } = planner;
 
-  const { programCode, specs } = useSelector((state: RootState) => state.degree);
+  const degreeQuery = useUserDegree();
+  const degree = degreeQuery.data;
 
-  useEffect(() => {
-    // get structure of degree
-    const fetchStructure = async () => {
-      try {
-        const res = await axios.get<Structure>(
-          `/programs/getStructure/${programCode}/${specs.join('+')}`
-        );
-        setStructure(res.data.structure);
-        setUoc(res.data.uoc);
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error('Error at fetchStructure', err);
+  const structureQuery = useStructureQuery(
+    {
+      queryOptions: {
+        enabled: degree !== undefined
       }
-      setIsLoading(false);
-    };
-    if (programCode && specs.length > 0) fetchStructure();
-  }, [programCode, specs]);
+    },
+    // TODO-olli: this is ugly, but we will need some interesting type rules to allow this otherwise
+    degree?.programCode ?? '',
+    degree?.specs ?? []
+  );
+  const structure: ProgramStructure = structureQuery.data?.structure ?? {};
+  const uoc = structureQuery.data?.uoc ?? 0;
 
   useEffect(() => {
     openNotification({
@@ -66,8 +61,8 @@ const ProgressionChecker = () => {
   }, []);
 
   const [view, setView] = useState(Views.GRID_CONCISE);
-
-  const { courses, unplanned } = useSelector((store: RootState) => store.planner);
+  const coursesQuery = useUserCourses();
+  const courses = coursesQuery.data ?? badCourses;
 
   const countedCourses: string[] = [];
   const newViewLayout: ProgressionViewStructure = {};
@@ -124,8 +119,8 @@ const ProgressionChecker = () => {
             const course: ViewSubgroupCourse = {
               courseCode,
               title: subgroupStructure.courses[courseCode],
-              UOC: courses[courseCode]?.UOC || 0,
-              plannedFor: courses[courseCode]?.plannedFor || '',
+              UOC: courses[courseCode]?.uoc ?? 0,
+              plannedFor: courses[courseCode]?.plannedFor ?? '',
               isUnplanned: unplanned.includes(courseCode),
               isMultiterm: !!courses[courseCode]?.isMultiterm,
               isDoubleCounted,
@@ -160,8 +155,8 @@ const ProgressionChecker = () => {
             }
 
             currUOC +=
-              (courses[courseCode]?.UOC ?? 0) *
-              getNumTerms(courses[courseCode]?.UOC, courses[courseCode]?.isMultiterm);
+              (courses[courseCode]?.uoc ?? 0) *
+              getNumTerms(courses[courseCode]?.uoc, !!courses[courseCode]?.isMultiterm);
           });
 
           newViewLayout[group][subgroup].courses.sort((a, b) =>
@@ -178,11 +173,11 @@ const ProgressionChecker = () => {
     Object.keys(courses).forEach((courseCode) => {
       const course = {
         courseCode,
-        title: courses[courseCode].title,
-        UOC: courses[courseCode].UOC,
-        plannedFor: courses[courseCode].plannedFor as string,
+        title: courses[courseCode]?.title,
+        UOC: courses[courseCode]?.uoc,
+        plannedFor: courses[courseCode]?.plannedFor ?? '',
         isUnplanned: unplanned.includes(courseCode),
-        isMultiterm: courses[courseCode].isMultiterm,
+        isMultiterm: courses[courseCode]?.isMultiterm,
         isDoubleCounted: false,
         isOverCounted: false
       };
@@ -217,7 +212,7 @@ const ProgressionChecker = () => {
     <PageTemplate>
       <S.Wrapper>
         <Dashboard
-          isLoading={isLoading}
+          isLoading={structureQuery.isPending}
           structure={structure}
           totalUOC={uoc}
           freeElectivesUOC={Object.values(overflowCourses).reduce((acc, curr) => acc + curr.UOC, 0)}

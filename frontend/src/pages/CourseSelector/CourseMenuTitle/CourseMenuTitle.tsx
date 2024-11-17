@@ -8,26 +8,28 @@ import S from './styles';
 
 type Props = {
   courseCode: string;
+  runMutate?: (courseId: string) => void;
   selected?: boolean;
   accurate?: boolean;
   unlocked?: boolean;
   title: string;
 };
 
-const CourseMenuTitle = ({ courseCode, selected, accurate, unlocked, title }: Props) => {
+const CourseMenuTitle = ({ courseCode, runMutate, selected, accurate, unlocked, title }: Props) => {
   const isSmall = useMediaQuery('(max-width: 1400px)');
   const theme = useTheme();
+  const locked = !unlocked;
 
   return (
     <S.Wrapper>
       {isSmall ? (
         <Tooltip title={title} placement="topLeft">
-          <S.CourseTitleWrapper selected={selected} locked={!unlocked}>
+          <S.CourseTitleWrapper $selected={selected} $locked={locked}>
             {courseCode}
           </S.CourseTitleWrapper>
         </Tooltip>
       ) : (
-        <S.CourseTitleWrapper selected={selected} locked={!unlocked}>
+        <S.CourseTitleWrapper $selected={selected} $locked={locked}>
           {courseCode}: {title}
         </S.CourseTitleWrapper>
       )}
@@ -52,7 +54,7 @@ const CourseMenuTitle = ({ courseCode, selected, accurate, unlocked, title }: Pr
             style={{ fontSize: '12px', color: theme.text }}
           />
         )}
-        <QuickAddCartButton courseCode={courseCode} planned={selected} />
+        <QuickAddCartButton runMutate={runMutate} courseCode={courseCode} planned={selected} />
       </S.IconsWrapper>
     </S.Wrapper>
   );

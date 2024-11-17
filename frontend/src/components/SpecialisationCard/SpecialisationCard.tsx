@@ -1,10 +1,9 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
 import { Link } from 'react-scroll';
-import ReactTooltip from 'react-tooltip';
+import { Tooltip as ReactTooltip } from 'react-tooltip';
 import { purple } from '@ant-design/colors';
 import { Progress, Typography } from 'antd';
-import type { RootState } from 'config/store';
+import useSettings from 'hooks/useSettings';
 import S from './styles';
 
 type Props = {
@@ -18,12 +17,12 @@ const SpecialisationCard = ({ type, totalUOC, currUOC, specTitle }: Props) => {
   const { Title, Text } = Typography;
   const progress = Math.min(Math.round((currUOC / totalUOC) * 100), 100);
 
-  const { theme } = useSelector((state: RootState) => state.settings);
+  const { theme } = useSettings();
   const trailColor = theme === 'light' ? '#fff' : '#444249';
 
   return (
     <Link to={type} smooth duration={2000}>
-      <S.Card hoverable bordered={false}>
+      <S.Card hoverable bordered={false} id={`#${specTitle || type}SpecCard`}>
         <Title className="text" level={5}>
           {specTitle || type}
         </Title>
@@ -36,15 +35,20 @@ const SpecialisationCard = ({ type, totalUOC, currUOC, specTitle }: Props) => {
             strokeColor={{ '0%': purple[3], '100%': purple[4] }}
           />
         </div>
-        <ReactTooltip id={`card-${type}`} place="bottom" type={theme === 'dark' ? 'light' : 'dark'}>
-          <S.TooltipText>
-            <div>{progress}%</div>
-            <div>
-              ({currUOC} / {totalUOC} UOC)
-            </div>
-          </S.TooltipText>
-        </ReactTooltip>
       </S.Card>
+      <ReactTooltip
+        id={`card-${type}`}
+        anchorSelect={`#${specTitle || type}SpecCard`}
+        place="bottom"
+        variant={theme === 'dark' ? 'light' : 'dark'}
+      >
+        <S.TooltipText>
+          <div>{progress}%</div>
+          <div>
+            ({currUOC} / {totalUOC} UOC)
+          </div>
+        </S.TooltipText>
+      </ReactTooltip>
     </Link>
   );
 };

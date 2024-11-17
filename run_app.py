@@ -1,17 +1,35 @@
-# pylint: disable=cyclic-import
 """ run all of circles in one terminal, assuming a unix environment """
-import logging
+
 import os
+import logging
 import sys
 import threading
-from subprocess import Popen, check_call
+from subprocess import run, Popen, check_call
 from typing import TextIO
+from dotenv import dotenv_values
 
-from dotenv import load_dotenv
+
+# also crazy - autoconfigure the environment if it is borked
+if not os.path.exists(".venv"):
+    if run("./create_venv.sh", shell=True, check=False).returncode != 0:
+        print("please follow the above instructions to set up venv correctly")
+        sys.exit(1)
+
+os.system(". .venv/bin/activate")
+
+
+if run("npm --version", shell=True, check=False).returncode != 0:
+    print("You must install npm. Please follow the onboarding instructions to install npm")
+    sys.exit(1)
+
+if not os.path.exists("frontend/node_modules"):
+    run("cd frontend; npm install", shell=True, check=False)
 
 
 class LogPipe(threading.Thread, TextIO):
     """ boilerplate abstraction for redirecting the logs of a process """
+    # TODO: implement the abstract methods it is complaining about
+    # pylint: disable=abstract-method
     def __init__(self, level):
         """Setup the object with a logger and a loglevel
         and start the thread
@@ -29,8 +47,8 @@ class LogPipe(threading.Thread, TextIO):
 
     def run(self):
         """Run the thread, logging everything."""
-        for line in iter(self.pipeReader.readline, ''):
-            logging.log(self.level, line.strip('\n'))
+        for line in iter(self.pipeReader.readline, ""):
+            logging.log(self.level, line.strip("\n"))
 
         self.pipeReader.close()
 
@@ -39,64 +57,74 @@ class LogPipe(threading.Thread, TextIO):
         os.close(self.fdWrite)
 
     def write(self, message):
-        """ do write """
+        """do write"""
         logging.log(self.level, message)
 
 
-def get_backend_env():
+def get_backend_env() -> dict[str, str]:
     """
-        reads backend.env for mongodb username and password and python
-        version.
+    Reads backend.env and merges it with a copy of the os environment.
+    Also overwrites the database service names to be localhost, since the processes are running outside of the docker network.
     """
-    load_dotenv("./env/backend.env")
-    username = os.getenv("MONGODB_USERNAME")
-    password = os.getenv("MONGODB_PASSWORD")
-    python = os.getenv("PYTHON_VERSION") or "python"
-    return (username, password, python)
+    res = os.environ.copy()
+    res.update((k, v) for (k, v) in dotenv_values("./env/backend.env").items() if v is not None)
+    res["MONGODB_SERVICE_HOSTNAME"] = "localhost"
+    res["SESSIONSDB_SERVICE_HOSTNAME"] = "localhost"
+    res["PYTHONUNBUFFERED"] = "1"  # this is necessary for the uvicorn worker to send through output
 
-def get_frontend_env():
+    return res
+
+def get_frontend_env() -> dict[str, str]:
     """
-        reads frontend.env for mongodb username and password and python
-        version.
+    reads frontend.env and merges it with a copy of the os environment.
     """
-    load_dotenv("./env/frontend.env")
-    baseurl = os.getenv("VITE_BACKEND_API_BASE_URL")
-    return baseurl
+    res = os.environ.copy()
+    res.update((k, v) for (k, v) in dotenv_values("./env/frontend.env").items() if v is not None)
+
+    return res
+
 
 def main():
-    if os.system("docker ps") != 0:
+    if os.system("docker ps > /dev/null") != 0:
         print("please run docker first!")
         sys.exit(1)
-    logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s',
-        handlers=[
-        logging.FileHandler("debug.log", mode='w'),
-        logging.StreamHandler()
-        ]
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(message)s",
+        handlers=[logging.FileHandler("debug.log", mode="w"), logging.StreamHandler()],
     )
     # this is actually kooky if you think about it
     sys.stdout = LogPipe(logging.INFO)
     sys.stderr = LogPipe(logging.ERROR)
-    username, password, python_ver = get_backend_env()
-    base_url = get_frontend_env()
-    os.system('docker compose run --rm init-mongo')
+
+    backend_env = get_backend_env()
+    frontend_env = get_frontend_env()
+    python_ver = backend_env.get("PYTHON_VERSION", "python")
+
+    os.system("docker compose up -d sessionsdb mongodb")
+
     try:
+        # pylint: disable=consider-using-with
         Popen(
-            f'MONGODB_SERVICE_HOSTNAME=localhost MONGODB_PASSWORD={password} MONGODB_USERNAME={username}  nodemon --exec {python_ver} runserver.py',
+            f"{python_ver} -u runserver.py --dev",
             stdout=sys.stdout,
             stderr=sys.stderr,
             shell=True,
-            cwd='backend/'
+            cwd="backend/",
+            env=backend_env,
         )
+
         check_call(
-            f'VITE_BACKEND_API_BASE_URL={base_url} npm start',
-            shell=True,
+            "npm start",
             stdout=sys.stdout,
             stderr=sys.stderr,
-            cwd='frontend/'
+            shell=True,
+            cwd="frontend/",
+            env=frontend_env,
         )
-    # pylint: disable=broad-except
     except Exception as e:
-        sys.stdout.write(f'exception - {e}')
+        sys.stdout.write(f"exception - {e}")
     finally:
         sys.stdout.close()
         sys.stderr.close()
@@ -104,5 +132,6 @@ def main():
         sys.stderr = sys.__stderr__
         logging.shutdown()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

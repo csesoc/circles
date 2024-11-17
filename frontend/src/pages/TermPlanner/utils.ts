@@ -1,4 +1,5 @@
-import { Grade, Mark, PlannerCourse, PlannerYear, Term } from 'types/planner';
+import { Grade, Mark, PlannerCourse, Term } from 'types/planner';
+import { PlannerResponse } from 'types/userResponse';
 import getNumTerms from 'utils/getNumTerms';
 
 const parseMarkToInt = (mark: Mark): number | null => {
@@ -7,7 +8,7 @@ const parseMarkToInt = (mark: Mark): number | null => {
     const letterGradeToIntMap: Record<Grade, number | null> = {
       SY: null,
       FL: 25,
-      PS: 60,
+      PS: 55,
       CR: 70,
       DN: 80,
       HD: 90
@@ -18,8 +19,11 @@ const parseMarkToInt = (mark: Mark): number | null => {
 };
 
 // Checks if no courses have been planned
-const isPlannerEmpty = (years: PlannerYear[]) =>
-  years.every((year) => Object.keys(year).every((term) => year[term as Term].length === 0));
+const isPlannerEmpty = (planner: PlannerResponse) => {
+  return planner.years.every((year) =>
+    Object.keys(year).every((term) => year[term as Term].length === 0)
+  );
+};
 
 // Returns a list of terms and rowOffsets that multiterm course will be added to
 const getTermsList = (

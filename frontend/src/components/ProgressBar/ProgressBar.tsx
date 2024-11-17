@@ -1,6 +1,5 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
-import type { RootState } from 'config/store';
+import useSettings from 'hooks/useSettings';
 import S from './styles';
 
 type Props = {
@@ -8,7 +7,7 @@ type Props = {
 };
 
 const ProgressBar = ({ progress }: Props) => {
-  const { theme } = useSelector((state: RootState) => state.settings);
+  const { theme } = useSettings();
   const trailColor = theme === 'light' ? '#f5f5f5' : '#444249';
 
   let bgColor = '#3cb371';

@@ -1,0 +1,13 @@
+name: "Setup Backend Dependencies"
+description: "Sets up the backend dependencies required for the testing containers."
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up python 3.12
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.12"
+    - name: Install dependencies
+      run: pip install -r ./backend/requirements.txt
+      shell: bash

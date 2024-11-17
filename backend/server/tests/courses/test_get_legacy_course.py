@@ -5,6 +5,7 @@ data is working.
 
 import json
 from typing import Annotated, Any, Optional
+
 import requests
 
 with open(
@@ -75,8 +76,8 @@ def def_test_legacy_course_error():
     assert get_legacy_course_wrapper(2021, "COMP9999").status_code == 400
     assert get_legacy_course_wrapper(2022, "COMP9999").status_code == 400
 
-    assert get_legacy_course_wrapper(2024, "COMP1511").status_code == 400
-    assert get_legacy_course_wrapper(2025, "COMP1511").status_code == 400
+    assert get_legacy_course_wrapper(2050, "COMP1511").status_code == 400
+    assert get_legacy_course_wrapper(2049, "COMP1511").status_code == 400
     assert get_legacy_course_wrapper(2018, "COMP1511").status_code == 400
     assert get_legacy_course_wrapper(2017, "COMP1511").status_code == 400
 

@@ -4,9 +4,8 @@ import { vi } from 'vitest';
 // use to mock useMediaQuery
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation((query) => ({
+  value: vi.fn().mockImplementation((query: string) => ({
     matches: false,
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     media: query,
     onchange: null,
     addListener: vi.fn(), // deprecated
@@ -34,6 +33,9 @@ vi.mock('utils/openNotification', () => ({
 vi.mock('hooks/useIntersectionObserver', () => ({
   default: vi.fn()
 }));
+
+vi.stubEnv('VITE_BACKEND_API_BASE_URL', 'http://localhost:8000/');
+vi.stubEnv('VITE_ENV', 'dev');
 
 const dummyNavigate = vi.fn();
 const useNavigateMock = vi.spyOn(reactRouterDom, 'useNavigate');

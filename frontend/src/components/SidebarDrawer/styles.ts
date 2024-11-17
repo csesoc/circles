@@ -17,7 +17,7 @@ const getAnimationState = (openState: boolean | undefined) => {
       `;
 };
 
-const Wrapper = styled.div<{ open?: boolean }>`
+const Wrapper = styled.div<{ $open?: boolean }>`
   position: absolute;
   height: 85%;
   width: 30rem;
@@ -30,7 +30,7 @@ const Wrapper = styled.div<{ open?: boolean }>`
 
   animation-duration: 0.7s;
   animation-fill-mode: forwards;
-  ${({ open }) => getAnimationState(open)}
+  ${({ $open }) => getAnimationState($open)}
 
   @keyframes animation_opening {
     from {

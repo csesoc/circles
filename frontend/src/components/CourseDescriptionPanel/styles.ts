@@ -3,12 +3,12 @@ import styled, { css } from 'styled-components';
 
 const { Text } = Typography;
 
-const Wrapper = styled.div<{ sidebar?: boolean }>`
+const Wrapper = styled.div<{ $sidebar?: boolean }>`
   width: 100%;
   padding: 10px;
 
-  ${({ sidebar }) =>
-    sidebar &&
+  ${({ $sidebar }) =>
+    $sidebar &&
     css`
       padding: 30px;
       display: flex;
@@ -26,9 +26,9 @@ const SidebarWrapper = styled.div`
   flex-basis: 25%;
 `;
 
-const TitleWrapper = styled.div<{ sidebar?: boolean }>`
-  ${({ sidebar }) =>
-    sidebar &&
+const TitleWrapper = styled.div<{ $sidebar?: boolean }>`
+  ${({ $sidebar }) =>
+    $sidebar &&
     css`
       display: flex;
       flex-direction: row;

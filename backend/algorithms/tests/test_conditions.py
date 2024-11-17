@@ -160,20 +160,18 @@ def test_wam_condition_simple():
     })
     cond1_user1_unlocked = cond1.validate(user1)
     assert cond1_user1_unlocked[0]
-    assert len(cond1_user1_unlocked[1]) == 1
-    assert 'Requires 70 WAM in all courses.' in (cond1_user1_unlocked[1])[0]
+    assert len(cond1_user1_unlocked[1]) == 0
 
     cond2 = create_condition((["(", "90WAM", ")"]))
     cond2_user1_unlocked = cond2.validate(user1)
     assert cond2_user1_unlocked[0]
-    assert len(cond2_user1_unlocked[1]) == 1
-    assert 'Requires 90 WAM in all courses.' in (cond2_user1_unlocked[1])[0]
+    assert len(cond2_user1_unlocked[1]) == 0
 
     cond4 = create_condition((["(", "100WAM", ")"]))
     cond4_user1_unlocked = cond4.validate(user1)
-    assert cond4_user1_unlocked[0]
+    assert not cond4_user1_unlocked[0]
     assert len(cond4_user1_unlocked[1]) == 1
-    assert "Requires 100 WAM in all courses.  Your WAM in all courses is currently 90.000" in cond4_user1_unlocked[1]
+    assert "((Requires 100 WAM in all courses.  Your WAM in all courses is currently 90.000))" in cond4_user1_unlocked[1]
 
 def test_wam_condition_complex():
     '''Testing wam condition including keywords'''
@@ -204,7 +202,7 @@ def test_wam_condition_complex():
     })
 
     assert (comp_cond_70.validate(user1))[0]
-    assert (math_cond_70.validate(user1))[0]
+    assert not (math_cond_70.validate(user1))[0]
     assert (comp_math_cond_70.validate(user1))[0]
 
 
@@ -488,9 +486,9 @@ def test_complex_composite_condition():
     assert not deep_program_cond.beneficial(user, {"MATH1141": (6, 100)})
 
 def test_core_courses_no_courses():
-    user = User(USERS["user3"]) # user has only 1521 and 1531 as core
+    user = User(USERS["user3"])  # user has only 1521 and 1531 as core
     comp_program_cond = create_condition(["(" ,"CORES" , "in" , "L2", ")"])
-    assert comp_program_cond.validate(user)[0] # no level 2 cores
+    assert comp_program_cond.validate(user)[0]  # no level 2 cores
     comp_program_cond = create_condition(["(" ,"CORES" , "in" , "L1", ")"])
     assert comp_program_cond.validate(user)[0] is False
     user.add_courses({
@@ -501,11 +499,11 @@ def test_core_courses_no_courses():
     assert comp_program_cond.validate(user)[0]
 
 def test_exclusions_cores():
-    user = User(USERS["user2"]) # user has only 1131 and 1141 as core
+    user = User(USERS["user2"])  # user has only 1131 and 1141 as core
     comp_program_cond = create_condition(["(" ,"CORES", ")"])
-    assert comp_program_cond.validate(user)[0] # did 1131, doesnt need 1141
+    assert comp_program_cond.validate(user)[0]  # did 1131, doesnt need 1141
 
 def test_subset_of_cores():
     user = User(USERS["user5"])
     comp_program_cond = create_condition(["(" ,"CORES", "in", "L1", ")"])
-    assert comp_program_cond.validate(user)[0] # doesnt need to do 2521
+    assert comp_program_cond.validate(user)[0]  # doesnt need to do 2521

@@ -1,10 +1,9 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
 import { BugOutlined } from '@ant-design/icons';
 import { Tooltip } from 'antd';
 import { FEEDBACK_LINK } from 'config/constants';
-import type { RootState } from 'config/store';
 import useMediaQuery from 'hooks/useMediaQuery';
+import useSettings from 'hooks/useSettings';
 import S from './styles';
 
 const FeedbackButton = () => {
@@ -13,7 +12,8 @@ const FeedbackButton = () => {
   const openFeedbackLink = () => {
     window.open(FEEDBACK_LINK, '_blank');
   };
-  const { theme } = useSelector((state: RootState) => state.settings);
+
+  const { theme } = useSettings();
 
   // Move this to the drawer if the screen is too small
   return isTablet ? null : (

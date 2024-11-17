@@ -10,30 +10,28 @@ import subprocess
 from sys import exit
 from typing import Callable
 
-from algorithms.cache.cache import (cache_equivalents, cache_exclusions, cache_handbook_note,
-                                    cache_mappings, cache_program_mappings)
-
+from algorithms.cache.cache import (cache_equivalents, cache_exclusions, cache_handbook_note, cache_mappings,
+                                    cache_program_mappings)
 from algorithms.create_program import process_program_conditions
 from data.processors.cache_graph import cache_graph
-from data.processors.load_conditions import cache_conditions_pkl_file
-from data.processors.log_broken import log_broken_conditions
-
 from data.processors.conditions_preprocessing import preprocess_conditions
 from data.processors.conditions_tokenising import tokenise_conditions
-from data.processors.program_conditions_pre_processing import pre_process
 from data.processors.courses_processing import process_course_data
+from data.processors.load_conditions import cache_conditions_pkl_file
+from data.processors.log_broken import log_broken_conditions
+from data.processors.program_conditions_pre_processing import pre_process
 from data.processors.program_conditions_tokenising import tokenise_program_conditions
 from data.processors.programs_processing import process_prg_data
 from data.processors.specialisations_processing import customise_spn_data
-
 from data.scrapers.courses_formatting import format_course_data
 from data.scrapers.courses_scraper import scrape_course_data
+from data.scrapers.faculty_code_formatting import format_code_data
+from data.scrapers.gened_scraper import scrape_gened_data
 from data.scrapers.programs_formatting import format_prg_data
 from data.scrapers.programs_scraper import scrape_prg_data
-from data.scrapers.gened_scraper import scrape_gened_data
 from data.scrapers.specialisations_formatting import format_spn_data
 from data.scrapers.specialisations_scraper import scrape_spn_data
-from data.scrapers.faculty_code_formatting import format_code_data
+
 # from data.scrapers.enrolment_scraper import scrape_enrolment_data
 
 parser = argparse.ArgumentParser()
@@ -174,8 +172,10 @@ if __name__ == "__main__":
     else:
         # Run the specific process
         try:
-            run[args.type][args.stage]()
+            run[args.type][args.stage]
         except KeyError:
             print(f"{args.type} and {args.stage} is an invalid combination")
             parser.print_help()
+            exit(1)
 
+        run[args.type][args.stage]()

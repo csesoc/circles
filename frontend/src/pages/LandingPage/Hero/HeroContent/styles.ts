@@ -26,13 +26,12 @@ const HeroCTA = motion(styled.button`
   border-radius: 50px;
   background-color: #fff;
   border: none;
-  width: 200px;
+  width: 250px;
   height: 3.5rem;
   cursor: pointer;
   margin-bottom: 2.5rem;
   font-weight: 700;
-  font-size: 1.2rem;
-  letter-spacing: 0.5rem;
+  font-size: 1rem;
   color: #9453e6;
 `);
 

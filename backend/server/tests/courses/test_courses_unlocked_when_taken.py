@@ -1,16 +1,21 @@
-# pylint: disable=missing-function-docstring
-# pylint: disable=missing-module-docstring
 import json
 import requests
 
-PATH = "./algorithms/tests/exampleUsers.json"
+from server.tests.user.utility import clear, get_token, get_token_headers
+
+PATH = "server/example_input/example_local_storage_data.json"
 
 with open(PATH, encoding="utf8") as f:
-    USERS = json.load(f)
+    DATA = json.load(f)
 
 def test_no_courses_completed():
+    clear()
+    token = get_token()
+    headers = get_token_headers(token)
+    requests.put('http://127.0.0.1:8000/user/import', json=DATA["sample_user_no_courses"], headers=headers)
+
     x = requests.post(
-        'http://127.0.0.1:8000/courses/coursesUnlockedWhenTaken/COMP1511', json=USERS["user3"])
+        'http://127.0.0.1:8000/courses/coursesUnlockedWhenTaken/COMP1511', json={}, headers=headers)
     assert x.json() == {
         "direct_unlock": [
             'COMP1521',
@@ -18,7 +23,8 @@ def test_no_courses_completed():
             'COMP2041',
             'COMP2121',
             'COMP2521',
-            'COMP9334'
+            'COMP9334',
+            'MMAN9350',
         ],
         # COMP1511 is equivalent to 'DPST1091' so it unlocks DPST1093
         # Maybe "equivalent" courses should be under `direct_unlock`?
@@ -27,17 +33,45 @@ def test_no_courses_completed():
 
 
 def test_malformed_request():
+    clear()
+    token = get_token()
+    headers = get_token_headers(token)
+    requests.put('http://127.0.0.1:8000/user/import', json=DATA["sample_user_no_courses"], headers=headers)
+
     x = requests.post(
-        'http://127.0.0.1:8000/courses/coursesUnlockedWhenTaken/&&&&&', json=USERS["user3"])
+        'http://127.0.0.1:8000/courses/coursesUnlockedWhenTaken/&&&&&', {}, headers=headers)
     assert x.status_code == 400
     x = requests.post(
-        'http://127.0.0.1:8000/courses/coursesUnlockedWhenTaken/COMPXXXX', json=USERS["user3"])
+        'http://127.0.0.1:8000/courses/coursesUnlockedWhenTaken/COMPXXXX', {}, headers=headers)
     assert x.status_code == 400
 
 
 def test_two_courses_completed():
+    clear()
+    token = get_token()
+    headers = get_token_headers(token)
+    requests.put('http://127.0.0.1:8000/user/import', json=DATA["sample_user_1"], headers=headers)
+
+    requests.put(
+        'http://127.0.0.1:8000/user/updateCourseMark',
+        json={
+            'course': 'COMP1511',
+            'mark': 84
+        },
+        headers=headers
+    )
+
+    requests.put(
+        'http://127.0.0.1:8000/user/updateCourseMark',
+        json={
+            'course': 'COMP1521',
+            'mark': 57
+        },
+        headers=headers
+    )
+
     x = requests.post(
-        'http://127.0.0.1:8000/courses/coursesUnlockedWhenTaken/COMP2521', json=USERS["user1"])
+        'http://127.0.0.1:8000/courses/coursesUnlockedWhenTaken/COMP2521', {}, headers=headers)
     # TABL2710 is unlocked because USER1 now meets the 18UOC requirement
     assert x.json() == {
         "direct_unlock": [
@@ -60,6 +94,7 @@ def test_two_courses_completed():
             "COMP9444",
             "COMP9517",
             "COMP9727",
+            "MTRN2500",
         ],
-        "indirect_unlock": ["TABL2710"]
+        "indirect_unlock": ["BABS3301", "BEIL0011", "COMP4920", "MUSC2117", "TABL2710"]
     }

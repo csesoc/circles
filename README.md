@@ -47,4 +47,6 @@ We are a team that is part of DevSoc! See [TEAM.md](./TEAM.md) for more informat
 
 Also, special thanks to James Ji, Vincent Xiao, Hayes Choy for being the first team to work on and inspire Circles :)
 
-[For further development documentation, visit our confluence page!](https://devsoc.atlassian.net/wiki/spaces/C/pages/756966/About+Circles)
+Information to run Circles on your local machine are available in the [frontend](./frontend/README.md) and [backend](./backend/README.md) `README.md` files.
+
+For further development documentation, visit our [confluence page](https://devsoc.atlassian.net/wiki/spaces/C/pages/756966/About+Circles)!

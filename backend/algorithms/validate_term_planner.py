@@ -1,22 +1,24 @@
+from typing import Optional
 from algorithms.objects.user import User
-from server.routers.model import CONDITIONS, CACHED_HANDBOOK_NOTE, ValidPlannerData
+from server.routers.model import CACHED_HANDBOOK_NOTE, CONDITIONS, CourseState
 
-def validate_terms(data: ValidPlannerData):
+
+RawUserPlan = list[list[dict[str, tuple[int, Optional[int]]]]]
+
+def validate_terms(programCode: str, specs: list[str], plan: RawUserPlan) -> dict[str, CourseState]:
+    """Validates the term planner, returning all warnings."""
     emptyUserData = {
-        "program": data.program,
-        "specialisations": data.specialisations,
+        "program": programCode,
+        "specialisations": specs[:],
         "courses": {},  # Start off the user with an empty year
     }
     user = User(emptyUserData)
     # State of courses on the term planner
-    coursesState = {}
+    coursesState: dict[str, CourseState] = {}
 
-    currYear = data.mostRecentPastTerm["Y"]
-    pastTerm = data.mostRecentPastTerm["T"]
-
-    for yearIndex, year in enumerate(data.plan):
+    for year in plan:
         # Go through all the years
-        for termIndex, term in enumerate(year):
+        for term in year:
             user.add_current_courses(term)
 
             for course in term:
@@ -26,13 +28,13 @@ def validate_terms(data: ValidPlannerData):
                     if is_answer_accurate
                     else (True, [])
                 )
-                coursesState[course] = {
-                    "is_accurate": is_answer_accurate,
-                    "handbook_note": CACHED_HANDBOOK_NOTE.get(course, ""),
-                    "unlocked": unlocked,
-                    "warnings": warnings,
-                    "supressed": yearIndex + 1 < currYear or (yearIndex + 1 == currYear and termIndex <= pastTerm)
-                }
+                coursesState[course] = CourseState(
+                    is_accurate=is_answer_accurate,
+                    handbook_note=CACHED_HANDBOOK_NOTE.get(course, ""),
+                    unlocked=unlocked,
+                    warnings=warnings
+                )
+
             # Add all these courses to the user in preparation for the next term
             user.empty_current_courses()
             user.add_courses(term)

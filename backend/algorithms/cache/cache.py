@@ -4,21 +4,17 @@ JSON files for faster algorithms performance.
 This should be run from the backend directory or via runprocessors
 """
 
-from functools import reduce
 import operator
 import re
+from functools import reduce
 from typing import Any, Literal
 
-from algorithms.cache.cache_config import (CACHE_CONFIG, CACHED_EQUIVALENTS_FILE,
-                                           CACHED_EXCLUSIONS_FILE,
-                                           CACHED_WARNINGS_FILE,
-                                           CONDITIONS_PROCESSED_FILE,
-                                           COURSE_MAPPINGS_FILE,
-                                           COURSES_PROCESSED_FILE,
-                                           MAPPINGS_FILE,
-                                           PROGRAM_MAPPINGS_FILE,
+from algorithms.cache.cache_config import (CACHE_CONFIG, CACHED_EQUIVALENTS_FILE, CACHED_EXCLUSIONS_FILE,
+                                           CACHED_WARNINGS_FILE, CONDITIONS_PROCESSED_FILE, COURSE_MAPPINGS_FILE,
+                                           COURSES_PROCESSED_FILE, MAPPINGS_FILE, PROGRAM_MAPPINGS_FILE,
                                            PROGRAMS_FORMATTED_FILE)
 from data.utility.data_helpers import read_data, write_data
+
 
 def cache_equivalents():
     """
@@ -95,13 +91,13 @@ def cache_mappings():
     def tokeniseFaculty(Faculty):
         faculty_token = "F "
         if re.search("Faculty of.+", Faculty):
-            match_object = re.search("(?<=Faculty\sof\s)[^\s\n\,]+", Faculty)
+            match_object = re.search(r"(?<=Faculty\sof\s)[^\s\n\,]+", Faculty)
         elif re.search("UNSW", Faculty):
             match_object = re.search(r"(?<=UNSW\s)[^\s\n\,]+", Faculty)
         else:
-            match_object = re.search("^([\w]+)", Faculty)
+            match_object = re.search(r"^([\w]+)", Faculty)
         if match_object is None:
-            raise Exception(f'no match found for faculty: {Faculty}')
+            raise KeyError(f'no match found for faculty: {Faculty}')
         match = match_object.group()
         faculty_token += match
         return faculty_token
@@ -109,22 +105,22 @@ def cache_mappings():
     # Tokenise faculty using regex, e.g 'School of Psychology' -> 'S Psychology'
     def tokeniseSchool(School):
         school_token = "S "
-        if re.search("School\sof\sthe.+", School):
-            match_object = re.search("(?<=School\sof\sthe\s)[^\s\n\,]+", School)
-        elif re.search("School\sof\s.+", School):
-            match_object = re.search("(?<=School\sof\s)[^\s\n\,]+", School)
+        if re.search(r"School\sof\sthe.+", School):
+            match_object = re.search(r"(?<=School\sof\sthe\s)[^\s\n\,]+", School)
+        elif re.search(r"School\sof\s.+", School):
+            match_object = re.search(r"(?<=School\sof\s)[^\s\n\,]+", School)
         elif re.search("^(UC)", School):
-            match_object = re.search("(?<=UC\s)[^\s\n\,]+", School)
+            match_object = re.search(r"(?<=UC\s)[^\s\n\,]+", School)
             if match_object is None:
-                raise Exception(f'no match found for school: {School}')
+                raise KeyError(f'no match found for school: {School}')
             match = school_token + "UC-" +  match_object.group()
             return match
         elif re.search("UNSW", School):
-            match_object = re.search("(?<=UNSW\s)[^\s\n\,]+", School)
+            match_object = re.search(r"(?<=UNSW\s)[^\s\n\,]+", School)
         else:
-            match_object = re.search("^([\w]+)", School)
+            match_object = re.search(r"^([\w]+)", School)
         if match_object is None:
-            raise Exception(f'no match found for school: {School}')
+            raise KeyError(f'no match found for school: {School}')
         match = match_object.group()
         school_token += match
         return school_token
@@ -172,7 +168,7 @@ def cache_program_mappings():
 
     keyword_codes: dict[str, list[str]] = read_data(CACHE_CONFIG)
 
-    mappings : dict = { # TODO: make more strict
+    mappings : dict = {  # TODO: make more strict
         code: {} for code
         in reduce(operator.add, keyword_codes.values())
     }

@@ -1,9 +1,10 @@
 """ Specialisations Route """
-from typing import Literal, Optional, cast
+from typing import Dict, Optional, cast
 from fastapi import APIRouter, HTTPException
-from server.database import programsCOL, specialisationsCOL
-from server.routers.model import SpecialisationTypes, Specialisations
+
 from data.processors.models import Program
+from server.db.mongo.conn import programsCOL, specialisationsCOL
+from server.routers.model import SpecType, Specialisations, SpecialisationTypes
 
 router = APIRouter(
     prefix="/specialisations",
@@ -23,14 +24,14 @@ def specialisations_index():
         200: {"types": ["majors", "minors"]}
     }
 )
-def get_specialisation_types(programCode):
+def get_specialisation_types(programCode: str) -> Dict[str, list[SpecType]]:
     """ get the possible types of a program """
     result = programsCOL.find_one({"code": programCode})
 
     if not result:
         raise HTTPException(
             status_code=400, detail="Program code was not found")
-    return {"types": [*result["components"]["spec_data"].keys()]}
+    return {"types": [*result["components"].get("spec_data", {}).keys()]}
 
 
 @router.get(
@@ -66,7 +67,7 @@ def get_specialisation_types(programCode):
         },
     },
 )
-def get_specialisations(programCode: str, typeSpec: Literal["majors"] | Literal["minors"] | Literal["honours"]):
+def get_specialisations(programCode: str, typeSpec: SpecType):
     """ Fetch all the majors known to the backend for a specific program """
     result = cast(Optional[Program], programsCOL.find_one({"code": programCode}))
 
@@ -74,7 +75,11 @@ def get_specialisations(programCode: str, typeSpec: Literal["majors"] | Literal[
         raise HTTPException(
             status_code=400, detail="Program code was not found")
 
-    specRes = result["components"]["spec_data"].get(typeSpec)
+    specData = result["components"].get("spec_data")
+    if not specData:
+        # This is for programs without specialisations, e.g. 3362
+        return {"spec": {}}
+    specRes = specData.get(typeSpec)
     if not specRes:
         raise HTTPException(
             status_code=404, detail=f"this program has no {typeSpec}")

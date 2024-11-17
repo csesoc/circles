@@ -112,6 +112,16 @@
             "COMP1511": [6, 100]
         }
     },
+    "user_one_math": {
+        "program": "3707",
+        "specialisations": [
+            "COMPA1",
+            "ACCTA2"
+        ],
+        "courses": {
+            "MATH1131": [6, 100]
+        }
+    },
     "user_fail_comp1511": {
         "program": "3707",
         "specialisations": [
@@ -131,5 +141,11 @@
         "courses": {
             "COMP1511": [6, 50]
         }
+    },
+    "user_degree_wizard": {
+        "programCode": "3778",
+        "startYear": 2020,
+        "endYear": 2023,
+        "specs": ["COMPA1", "ACCTA2"]
     }
 }

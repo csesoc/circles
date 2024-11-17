@@ -2,57 +2,28 @@
 This module allows for the conversion from strings / tokens of strings
 to actual condition objects.
 """
+# pylint: disable=too-many-nested-blocks, too-many-branches
 
 import json
 import re
 from typing import Optional, Tuple
 
-from algorithms.objects.categories import (
-    Category,
-    CompositeCategory,
-    ClassCategory,
-    CourseCategory,
-    FacultyCategory,
-    LevelCategory,
-    LevelCourseCategory,
-    SchoolCategory,
-)
-from algorithms.objects.conditions import (
-    CompositeCondition,
-    CoresCondition,
-    CoreqCourseCondition,
-    CourseCondition,
-    CourseExclusionCondition,
-    GradeCondition,
-    ProgramCondition,
-    ProgramExclusionCondition,
-    ProgramTypeCondition,
-    SpecialisationCondition,
-    UOCCondition,
-    WAMCondition,
-)
-from algorithms.objects.helper import (
-    Logic,
-    get_grade,
-    get_uoc,
-    get_wam,
-    is_course,
-    is_grade,
-    is_program,
-    is_program_type,
-    is_specialisation,
-    is_uoc,
-    is_wam,
-    get_level_category,
-    get_course_category
-)
+from algorithms.objects.categories import (Category, ClassCategory, CompositeCategory, CourseCategory, FacultyCategory,
+                                           LevelCategory, LevelCourseCategory, SchoolCategory)
+from algorithms.objects.conditions import (CompositeCondition, CoreqCourseCondition, CoresCondition, CourseCondition,
+                                           CourseExclusionCondition, GradeCondition, ProgramCondition,
+                                           ProgramExclusionCondition, ProgramTypeCondition, SpecialisationCondition,
+                                           UOCCondition, WAMCondition)
+from algorithms.objects.helper import (Logic, get_course_category, get_grade, get_level_category, get_uoc, get_wam,
+                                       is_course, is_grade, is_program, is_program_type, is_specialisation, is_uoc,
+                                       is_wam)
 
 # Load in cached exclusions
 CACHED_EXCLUSIONS_PATH = "algorithms/cache/exclusions.json"
 with open(CACHED_EXCLUSIONS_PATH, "r", encoding="utf8") as f:
     CACHED_EXCLUSIONS = json.load(f)
 
-def create_category(tokens) -> Tuple[Optional[Category], int]: # pylint: disable=too-many-return-statements
+def create_category(tokens) -> Tuple[Optional[Category], int]:
     """
     Given a list of tokens starting from after the connector keyword, create
     and return the category object matching the category, as well as the current index
@@ -268,4 +239,3 @@ def make_condition(tokens, first=False, course=None) -> Tuple[Optional[Composite
             result.add_condition(cond)
 
     return result, index
-

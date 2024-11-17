@@ -11,7 +11,6 @@ TODO: Figure out why terms don't work for old data - pre-2021 or so.
 """
 
 import requests
-
 from data.config import LIVE_YEAR
 
 

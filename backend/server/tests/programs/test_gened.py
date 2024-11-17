@@ -3,7 +3,9 @@ Testing functionality related to general education units.
 """
 
 from typing import List
+
 import requests
+
 
 def test_get_gened_no_overlap():
     """

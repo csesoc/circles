@@ -3,13 +3,20 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from 'test/testUtil';
 import { vi } from 'vitest';
+import { RootState } from 'config/store';
 import CourseTabs from './CourseTabs';
 
-const preloadedState = {
+const preloadedState: RootState = {
   courseTabs: {
     tabs: ['COMP1511', 'COMP1521', 'COMP1531'],
     active: 0
-  }
+  },
+  settings: {
+    theme: 'dark',
+    showLockedCourses: false,
+    showPastWarnings: false
+  },
+  identity: null
 };
 
 vi.mock('components/DraggableTab', () => ({

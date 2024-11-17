@@ -11,6 +11,7 @@ from algorithms.objects.conditions import CompositeCondition
 from algorithms.objects.helper import read_data
 from data.config import CONDITIONS_PICKLE_FILE, CONDITIONS_TOKEN_FILE
 
+
 def construct_conditions_objects() -> Dict[str, Optional[CompositeCondition]]:
     """
     Construct conditions objects by reading all conditions tokens
@@ -49,4 +50,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -28,7 +28,8 @@ def request_data():
     """Requests and returns jsonified data"""
 
     r = requests.get(
-        "https://www.handbook.unsw.edu.au/api/content/render/false/query/+contentType:unsw_peducational_area +conHost:f59fc109-4aaa-40e0-bdcc-7039d31533f8 +deleted:false +working:true +live:true +languageId:1 /orderBy/modDate desc/limit/0"
+        "https://www.handbook.unsw.edu.au/api/content/render/false/query/+contentType:unsw_peducational_area +conHost:f59fc109-4aaa-40e0-bdcc-7039d31533f8 +deleted:false +working:true +live:true +languageId:1 /orderBy/modDate desc/limit/0",
+        timeout=60 * 5,
     )
     return r.json()["contentlets"]
 

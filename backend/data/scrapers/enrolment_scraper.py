@@ -9,12 +9,14 @@ In the backend folder run:
     python3 runprocessors.py --type=enrolment --stage=scrape --username=z5555555 --password=abc123
 """
 
-import paramiko
 import argparse
 import hashlib
-import waiting #type: ignore
 import re
+import sys
 
+import paramiko
+import paramiko.ssh_exception
+import waiting  # type: ignore
 from data.utility.data_helpers import read_data, write_data
 
 COURSE_CODES_INPUT_PATH = "data/final_data/coursesProcessed.json"
@@ -26,22 +28,22 @@ MAX_BYTES = 2**32
 
 def scrape_enrolment_data(username:str, password:str):
     data = read_data(COURSE_CODES_INPUT_PATH)
-    enrolment_data = {} # type: ignore
+    enrolment_data = {}  # type: ignore
     hashed_enrolment_data = {}  # type: ignore
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect('login.cse.unsw.edu.au', username=username, password=password)
-        stdin, stdout, stderr = ssh.exec_command('ls', timeout=1)
+        stdin, stdout, _stderr = ssh.exec_command('ls', timeout=1)
     except paramiko.ssh_exception.AuthenticationException:
         print('Authentication failed')
-        exit(1)
+        sys.exit(1)
     except paramiko.ssh_exception.SSHException:
         print('SSH failed')
-        exit(1)
+        sys.exit(1)
 
-    stdin, stdout, stderr = ssh.exec_command(f'ls\n', timeout=1)
-    #stdout.channel.set_combine_stderr(True)
+    stdin, stdout, _stderr = ssh.exec_command('ls\n', timeout=1)
+    # stdout.channel.set_combine_stderr(True)
     for course_code in data:
         if not course_code.startswith("COMP"):
             continue
@@ -51,10 +53,10 @@ def scrape_enrolment_data(username:str, password:str):
             enrolment_data[course_code][f'T{i}'] = []
             hashed_enrolment_data[course_code][f'T{i}'] = []
             try:
-                waiting.wait(lambda: stdin.channel.send_ready(), timeout_seconds=8)
+                waiting.wait(stdin.channel.send_ready, timeout_seconds=8)
                 stdin.channel.sendall(f'members {course_code}t{i}_Student\n'.encode())
 
-                waiting.wait(lambda: stdout.channel.recv_ready(), timeout_seconds=8)
+                waiting.wait(stdout.channel.recv_ready, timeout_seconds=8)
                 result = stdout.channel.recv(MAX_BYTES).decode('utf-8')
 
                 enrolment_data[course_code][f'T{i}'] = [res.split(' ')[0] for res in result.split('\n') if re.match(r'[0-9]{7}', res)]

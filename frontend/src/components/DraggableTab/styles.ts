@@ -1,6 +1,6 @@
 import styled, { css } from 'styled-components';
 
-const DraggableTabWrapper = styled.div<{ active: boolean }>`
+const DraggableTabWrapper = styled.div<{ $active: boolean }>`
   height: 100%;
   border-radius: 10px 0 0 0;
   background-color: ${({ theme }) => theme.draggableTab.backgroundColor};
@@ -13,8 +13,8 @@ const DraggableTabWrapper = styled.div<{ active: boolean }>`
   border: 1px solid ${({ theme }) => theme.draggableTab.borderColor};
   color: ${({ theme }) => theme.text};
 
-  ${({ active, theme }) =>
-    active &&
+  ${({ $active, theme }) =>
+    $active &&
     css`
       background-color: ${theme.body};
       border-bottom-color: ${theme.body};

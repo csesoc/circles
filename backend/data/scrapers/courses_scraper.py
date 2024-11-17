@@ -8,10 +8,8 @@ Step in the data's journey:
     [   ] Customise formatted data (coursesProcessing.py)
 """
 
-import json
 
-import requests
-from data.scrapers.payload import create_payload, URL, HEADERS
+from data.scrapers.payload import do_requests
 from data.utility import data_helpers
 
 TOTAL_COURSES = 10000
@@ -24,14 +22,13 @@ def scrape_course_data(year = None):
     write_data to dump the json to an OUTPUT_FILE
     """
 
-    r = requests.post(URL, data=json.dumps(create_payload(
-        TOTAL_COURSES,
-        "unsw_psubject",
-        year
-    )), headers=HEADERS)
+    data = do_requests("subject", items_per_req=100, max_items=TOTAL_COURSES)
+
+    # for now, filter courses to get only undergrad (remove later)
+    data = [obj for obj in data if obj["studyLevelValue"] == "ugrd"]
 
     data_helpers.write_data(
-        r.json()["contentlets"],
+        data,
         "data/scrapers/coursesPureRaw.json"
         if year is None else
         f"data/final_data/archive/raw/{year}.json"

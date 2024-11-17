@@ -35,9 +35,10 @@
         "jsx-a11y/click-events-have-key-events": ["off"],
         "jsx-a11y/interactive-supports-focus": ["off"],
         "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
-        "no-unused-vars": ["error", { "argsIgnorePattern": "^_$" }],
+        "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_$" }],
+        "no-unused-vars": ["warn", { "argsIgnorePattern": "^_$" }],
         "react/function-component-definition": ["error", { "namedComponents": "arrow-function", "unnamedComponents": "arrow-function" }],
-        "simple-import-sort/imports": ["error", {
+        "simple-import-sort/imports": ["warn", {
             "groups": [
                 [
                     // react based packages
@@ -70,5 +71,15 @@
             "extensions": [".ts", ".tsx"]
           }
         }
-    }
+    },
+    "overrides": [
+        {
+            "files": "src/utils/api/**/*",
+            "rules": {
+                "import/prefer-default-export": "off",
+                "no-console": "off"  // TODO-OLLI(pm): remove this when we unify api error handling
+            }
+        }
+    ],
+    "reportUnusedDisableDirectives": true
 }

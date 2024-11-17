@@ -1,17 +1,24 @@
 import React, { Suspense, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { NotificationOutlined } from '@ant-design/icons';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { App as AntdApp, ConfigProvider, theme as antdTheme } from 'antd';
 import { ThemeProvider } from 'styled-components';
 import openNotification from 'utils/openNotification';
+import IdentityProvider from 'components/Auth/IdentityProvider';
+import PreventToken from 'components/Auth/PreventToken';
+import RequireToken from 'components/Auth/RequireToken';
 import ErrorBoundary from 'components/ErrorBoundary';
 import PageLoading from 'components/PageLoading';
 import { inDev } from 'config/constants';
-import type { RootState } from 'config/store';
 import { darkTheme, GlobalStyles, lightTheme } from 'config/theme';
+import useSettings from 'hooks/useSettings';
+import Login from 'pages/Login';
+import LoginSuccess from 'pages/LoginSuccess';
+import Logout from 'pages/Logout';
 import './config/axios';
 // stylesheets for antd library
-import 'antd/dist/antd.less';
+import 'antd/dist/reset.css';
 
 // Lazy load in pages
 const LandingPage = React.lazy(() => import('./pages/LandingPage'));
@@ -23,9 +30,11 @@ const ProgressionChecker = React.lazy(() => import('./pages/ProgressionChecker')
 const TermPlanner = React.lazy(() => import('./pages/TermPlanner'));
 
 const App = () => {
-  const { theme } = useSelector((state: RootState) => state.settings);
+  const [queryClient] = React.useState(
+    () => new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false } } })
+  );
 
-  const degree = useSelector((state: RootState) => state.degree);
+  const { theme } = useSettings(queryClient);
 
   useEffect(() => {
     // using local storage since I don't want to risk invalidating the redux state right now
@@ -75,29 +84,50 @@ const App = () => {
   }, []);
 
   return (
-    <ThemeProvider theme={theme === 'light' ? lightTheme : darkTheme}>
-      <GlobalStyles />
-      <ErrorBoundary>
-        <Suspense fallback={<PageLoading />}>
-          <Router>
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  !degree.isComplete ? <LandingPage /> : <Navigate to="/course-selector" replace />
-                }
-              />
-              <Route path="/degree-wizard" element={<DegreeWizard />} />
-              <Route path="/course-selector" element={<CourseSelector />} />
-              {inDev && <Route path="/graphical-selector" element={<GraphicalSelector />} />}
-              <Route path="/term-planner" element={<TermPlanner />} />
-              <Route path="/progression-checker" element={<ProgressionChecker />} />
-              <Route path="*" element={<Page404 />} />
-            </Routes>
-          </Router>
-        </Suspense>
-      </ErrorBoundary>
-    </ThemeProvider>
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#9254de'
+        },
+        algorithm: theme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm
+      }}
+    >
+      <AntdApp>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider theme={theme === 'light' ? lightTheme : darkTheme}>
+            <GlobalStyles />
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoading />}>
+                <Router>
+                  <Routes>
+                    <Route element={<IdentityProvider />}>
+                      <Route path="/" element={<LandingPage />} />
+                      <Route element={<PreventToken />}>
+                        <Route path="/login" element={<Login />} />
+                      </Route>
+                      <Route element={<RequireToken />}>
+                        <Route path="/degree-wizard" element={<DegreeWizard />} />
+                      </Route>
+                      <Route element={<RequireToken needSetup />}>
+                        <Route path="/course-selector" element={<CourseSelector />} />
+                        {inDev && (
+                          <Route path="/graphical-selector" element={<GraphicalSelector />} />
+                        )}
+                        <Route path="/term-planner" element={<TermPlanner />} />
+                        <Route path="/progression-checker" element={<ProgressionChecker />} />
+                      </Route>
+                      <Route path="/logout" element={<Logout />} />
+                    </Route>
+                    <Route path="/login/success/:provider" element={<LoginSuccess />} />
+                    <Route path="*" element={<Page404 />} />
+                  </Routes>
+                </Router>
+              </Suspense>
+            </ErrorBoundary>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </AntdApp>
+    </ConfigProvider>
   );
 };
 

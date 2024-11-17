@@ -11,8 +11,8 @@ type Props = {
 };
 
 const CourseButton = ({ courseCode, title, planned }: Props) => {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleCourseLink = (e: React.MouseEvent<HTMLElement>): void => {
     e.stopPropagation();
@@ -21,7 +21,7 @@ const CourseButton = ({ courseCode, title, planned }: Props) => {
   };
 
   return (
-    <S.CourseButton planned={planned} type="primary" onClick={handleCourseLink}>
+    <S.CourseButton $planned={planned} type="primary" onClick={handleCourseLink}>
       {courseCode}: {title}
     </S.CourseButton>
   );

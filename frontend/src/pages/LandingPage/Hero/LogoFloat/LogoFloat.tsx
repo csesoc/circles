@@ -40,7 +40,8 @@ const LogoFloat = () => (
         duration: 2,
         delay: 0.3,
         ease: 'easeInOut',
-        yoyo: Infinity
+        repeat: Infinity,
+        repeatType: 'reverse'
       }}
     />
   </S.Wrapper>

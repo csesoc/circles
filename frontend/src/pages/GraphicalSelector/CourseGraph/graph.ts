@@ -1,6 +1,4 @@
 import type { Arrow } from '@antv/g6';
-import { CourseValidation } from 'types/courses';
-import { PlannerCourse } from 'types/planner';
 
 const plannedNode = {
   size: 70,
@@ -89,12 +87,8 @@ const nodeLabelHoverStyle = (courseCode: string) => ({
   ...plannedLabel
 });
 
-const nodeLabelUnhoverStyle = (
-  courseCode: string,
-  plannedCourses: Record<string, PlannerCourse>,
-  theme: string
-) => {
-  if (plannedCourses[courseCode]) {
+const nodeLabelUnhoverStyle = (courseCode: string, isPlanned: boolean, theme: string) => {
+  if (isPlanned) {
     return {
       ...sameNode(courseCode),
       ...plannedLabel
@@ -158,13 +152,10 @@ const edgeUnhoverStyle = (arrow: typeof Arrow, theme: string, id: string) => {
 
 const mapNodeStyle = (
   courseCode: string,
-  plannedCourses: Record<string, PlannerCourse>,
-  courses: Record<string, CourseValidation> | undefined,
+  isPlanned: boolean,
+  isUnlocked: boolean,
   theme: string
 ) => {
-  const isPlanned = plannedCourses[courseCode];
-  const isUnlocked = courses && courses[courseCode] ? courses[courseCode].unlocked : false;
-
   if (isPlanned) return { ...sameNode(courseCode), ...plannedNode };
   if (isUnlocked) return { ...sameNode(courseCode), ...unlockedNode(theme) };
   return { ...sameNode(courseCode), ...lockedNode(theme) };

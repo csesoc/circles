@@ -2,11 +2,11 @@ import styled, { css } from 'styled-components';
 import { shake } from '../common/styles';
 
 type CourseWrapperProps = {
-  isSmall: boolean;
-  summerEnabled: boolean;
-  warningsDisabled: boolean;
-  isWarning: boolean;
-  dragDisabled: boolean;
+  $isSmall: boolean;
+  $summerEnabled: boolean;
+  $warningsDisabled: boolean;
+  $isWarning: boolean;
+  $dragDisabled: boolean;
 };
 
 const CourseWrapper = styled.li<CourseWrapperProps>`
@@ -17,7 +17,7 @@ const CourseWrapper = styled.li<CourseWrapperProps>`
   padding: 0.9em;
   padding-right: 1.1em;
   padding-left: 1.1em;
-  border-radius: ${({ isSmall }) => (isSmall ? '0.2em' : '1em')};
+  border-radius: ${({ $isSmall }) => ($isSmall ? '0.2em' : '1em')};
   max-width: 20em;
   min-width: 12em;
   margin-top: 1em;
@@ -28,35 +28,35 @@ const CourseWrapper = styled.li<CourseWrapperProps>`
   line-height: 1.5715;
   background-color: ${({ theme }) => theme.draggableCourse.backgroundColor};
 
-  ${({ isSmall }) =>
-    isSmall &&
+  ${({ $isSmall }) =>
+    $isSmall &&
     css`
       border-radius: 1.25em;
       padding: 0.8em;
       width: 10em;
     `}
 
-  ${({ summerEnabled, isSmall }) =>
-    summerEnabled &&
-    isSmall &&
+  ${({ $summerEnabled, $isSmall }) =>
+    $summerEnabled &&
+    $isSmall &&
     css`
       width: 8em;
     `}
 
-  ${({ warningsDisabled }) =>
-    warningsDisabled &&
+  ${({ $warningsDisabled }) =>
+    $warningsDisabled &&
     css`
       background-color: #fff3e0;
     `}
 
-  ${({ isWarning }) =>
-    isWarning &&
+  ${({ $isWarning }) =>
+    $isWarning &&
     css`
       background-color: ${({ theme }) => theme.draggableCourse.warningBackgroundColor};
     `}
 
-  ${({ dragDisabled }) =>
-    dragDisabled &&
+  ${({ $dragDisabled }) =>
+    $dragDisabled &&
     css`
       background-color: ${({ theme }) => theme.draggableCourse.dragDisabledBackgroundColor};
 

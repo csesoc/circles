@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import { renderWithProviders } from 'test/testUtil';
+import { getUserPlanner } from 'utils/api/userApi';
 import CourseMenuTitle from './CourseMenuTitle';
 
 const defaultProps = {
@@ -19,7 +20,7 @@ axiosMock.onGet('/courses/getCourse/COMP1511').reply(200, {
   title: 'Programming Fundamentals'
 });
 
-describe('CourseMenuTitle', async () => {
+describe('CourseMenuTitle', () => {
   it('should render', async () => {
     await renderWithProviders(<CourseMenuTitle {...defaultProps} />);
     expect(screen.getByText('COMP1511: Programming Fundamentals')).toBeInTheDocument();
@@ -38,8 +39,10 @@ describe('CourseMenuTitle', async () => {
   });
 
   it('should add course to planner', async () => {
-    const { store } = await renderWithProviders(<CourseMenuTitle {...defaultProps} accurate={false} />);
+    await renderWithProviders(<CourseMenuTitle {...defaultProps} accurate={false} />);
     await userEvent.click(screen.getByTestId('quick-add-cart-button'));
-    expect(store.getState().planner.unplanned).toEqual(['COMP1511']);
+    // TODO: idk how to get token in here
+    const planner = await getUserPlanner('');
+    expect(planner.unplanned).toEqual(['COMP1511']);
   });
 });

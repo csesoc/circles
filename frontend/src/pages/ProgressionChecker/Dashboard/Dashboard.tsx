@@ -1,15 +1,16 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
+import React, { useMemo } from 'react';
 import { scroller } from 'react-scroll';
 import { ArrowDownOutlined } from '@ant-design/icons';
 import { useSpring } from '@react-spring/web';
 import { Button, Typography } from 'antd';
 import { ProgramStructure } from 'types/structure';
+import { badCourses, badDegree } from 'types/userResponse';
+import { useAllDegreesQuery } from 'utils/apiHooks/static';
+import { useUserCourses, useUserDegree } from 'utils/apiHooks/user';
 import getNumTerms from 'utils/getNumTerms';
 import LiquidProgressChart from 'components/LiquidProgressChart';
 import { LoadingDashboard } from 'components/LoadingSkeleton';
 import SpecialisationCard from 'components/SpecialisationCard';
-import type { RootState } from 'config/store';
 import FreeElectivesCard from './FreeElectivesCard';
 import S from './styles';
 
@@ -37,54 +38,60 @@ const Dashboard = ({ isLoading, structure, totalUOC, freeElectivesUOC }: Props) 
     reset: true,
     config: { tension: 80, friction: 60 }
   });
+  const coursesQuery = useUserCourses();
+  const courses = coursesQuery.data || badCourses;
+  const degreeQuery = useUserDegree();
+  const degree = degreeQuery.data || badDegree;
+  const { programCode } = degree;
 
-  const { courses } = useSelector((state: RootState) => state.planner);
-  const { programCode, programName } = useSelector((state: RootState) => state.degree);
+  const programName = (useAllDegreesQuery().data?.programs || { [programCode]: '' })[programCode];
 
   let completedUOC = 0;
   Object.keys(courses).forEach((courseCode) => {
     if (courses[courseCode]?.plannedFor && !courses[courseCode]?.ignoreFromProgression) {
       completedUOC +=
-        courses[courseCode].UOC *
-        getNumTerms(courses[courseCode].UOC, courses[courseCode].isMultiterm);
+        courses[courseCode].uoc *
+        getNumTerms(courses[courseCode].uoc, courses[courseCode].isMultiterm);
     }
   });
 
-  const storeUOC: StoreUOC = {};
-
   // Example groups: Major, Minor, General, Rules
-  Object.keys(structure).forEach((group) => {
-    storeUOC[group] = {
-      total: 0,
-      curr: 0
-    };
+  const storeUOC: StoreUOC = useMemo(() => {
+    const res: StoreUOC = {};
+    Object.keys(structure).forEach((group) => {
+      res[group] = {
+        total: 0,
+        curr: 0
+      };
 
-    // Example subgroup: Core Courses, Computing Electives
-    Object.keys(structure[group].content).forEach((subgroup) => {
-      storeUOC[group].total += structure[group].content[subgroup].UOC;
-      const subgroupStructure = structure[group].content[subgroup];
+      // Example subgroup: Core Courses, Computing Electives
+      Object.keys(structure[group].content).forEach((subgroup) => {
+        res[group].total += structure[group].content[subgroup].UOC;
+        const subgroupStructure = structure[group].content[subgroup];
 
-      const isRule = subgroupStructure.type && subgroupStructure.type.includes('rule');
+        const isRule = subgroupStructure.type && subgroupStructure.type.includes('rule');
 
-      if (subgroupStructure.courses && !isRule) {
-        let currUOC = 0;
-        // only consider disciplinary component courses
-        Object.keys(subgroupStructure.courses).forEach((courseCode) => {
-          if (
-            courses[courseCode]?.plannedFor &&
-            currUOC < subgroupStructure.UOC &&
-            !courses[courseCode]?.ignoreFromProgression
-          ) {
-            const courseUOC =
-              courses[courseCode].UOC *
-              getNumTerms(courses[courseCode].UOC, courses[courseCode].isMultiterm);
-            storeUOC[group].curr += courseUOC;
-            currUOC += courseUOC;
-          }
-        });
-      }
+        if (subgroupStructure.courses && !isRule) {
+          let currUOC = 0;
+          // only consider disciplinary component courses
+          Object.keys(subgroupStructure.courses).forEach((courseCode) => {
+            if (
+              courses[courseCode]?.plannedFor &&
+              currUOC < subgroupStructure.UOC &&
+              !courses[courseCode]?.ignoreFromProgression
+            ) {
+              const courseUOC =
+                courses[courseCode].uoc *
+                getNumTerms(courses[courseCode].uoc, courses[courseCode].isMultiterm);
+              res[group].curr += courseUOC;
+              currUOC += courseUOC;
+            }
+          });
+        }
+      });
     });
-  });
+    return res;
+  }, [courses, structure]);
 
   const handleClick = () => {
     scroller.scrollTo('divider', {

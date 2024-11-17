@@ -1,6 +1,6 @@
 export type Term = 'T0' | 'T1' | 'T2' | 'T3';
 
-export type Mark = number | Grade | undefined;
+export type Mark = number | Grade | null;
 
 export type Grade = 'SY' | 'FL' | 'PS' | 'CR' | 'DN' | 'HD';
 
@@ -19,7 +19,6 @@ export type PlannerCourse = {
   warnings: string[];
   handbookNote: string;
   isAccurate: boolean;
-  supressed: boolean;
   ignoreFromProgression: boolean;
   isMultiterm: boolean;
   mark: Mark;
@@ -31,6 +30,28 @@ export type PlannerYear = {
   T1: string[];
   T2: string[];
   T3: string[];
+};
+
+export type UnPlannedToTerm = {
+  destRow: number;
+  destTerm: string;
+  destIndex: number;
+  courseCode: string;
+};
+
+export type UnscheduleCourse = {
+  srcRow?: number;
+  srcTerm?: string;
+  courseCode: string;
+};
+
+export type PlannedToTerm = {
+  srcRow: number;
+  srcTerm: string;
+  destRow: number;
+  destTerm: string;
+  destIndex: number;
+  courseCode: string;
 };
 
 export type JSONPlanner = {

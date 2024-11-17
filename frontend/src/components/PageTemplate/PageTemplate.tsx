@@ -6,9 +6,10 @@ import Header from 'components/Header';
 type Props = {
   children: React.ReactNode;
   showHeader?: boolean;
+  showBugButton?: boolean;
 };
 
-const PageTemplate = ({ children, showHeader = true }: Props) => (
+const PageTemplate = ({ children, showHeader = true, showBugButton = true }: Props) => (
   <>
     <Helmet>
       <title>Circles</title>
@@ -21,7 +22,7 @@ const PageTemplate = ({ children, showHeader = true }: Props) => (
     {showHeader && <Header />}
     <div>
       {children}
-      <FeedbackButton />
+      {showBugButton && <FeedbackButton />}
     </div>
   </>
 );

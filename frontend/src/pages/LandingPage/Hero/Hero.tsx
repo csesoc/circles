@@ -7,7 +7,11 @@ import LogoFloat from './LogoFloat';
 import S from './styles';
 import Wave from './Wave';
 
-const Hero = () => (
+type Props = {
+  startLocation: string;
+};
+
+const Hero = ({ startLocation }: Props) => (
   <S.HeroSection>
     <Wave />
     <PageContainer>
@@ -19,7 +23,7 @@ const Hero = () => (
           animate={{ x: 0, opacity: 1 }}
           initial={{ x: -30, opacity: 0 }}
         />
-        <HeroContent />
+        <HeroContent startLocation={startLocation} />
         <LogoFloat />
       </S.ContentWrapper>
     </PageContainer>

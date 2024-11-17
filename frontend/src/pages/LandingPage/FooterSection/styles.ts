@@ -7,7 +7,7 @@ const FooterBlob = styled.img`
 const FooterWrapper = styled.div`
   background-color: #9154de;
   /* TODO: Hack coz of pixel diff between blob and footer content */
-  margin-top: -0.5px;
+  margin-top: -1px;
 `;
 
 const FooterContentContainer = styled.div`

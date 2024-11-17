@@ -1,23 +1,41 @@
 import React from 'react';
 import { Typography } from 'antd';
+import { CoursesResponse } from 'types/userResponse';
+import { useAllDegreesQuery } from 'utils/apiHooks/static';
+import { useUserDegree } from 'utils/apiHooks/user';
 import CourseSearchBar from 'components/CourseSearchBar';
-import type { RootState } from 'config/store';
-import { useAppDispatch, useAppSelector } from 'hooks';
+import { useAppDispatch } from 'hooks';
 import { addTab } from 'reducers/courseTabsSlice';
 import S from './styles';
 
 const { Title } = Typography;
 
-const CourseBanner = () => {
-  const { programCode, programName } = useAppSelector((state: RootState) => state.degree);
+type CourseBannerProps = {
+  courses?: CoursesResponse;
+};
+
+const CourseBanner = ({ courses }: CourseBannerProps) => {
   const dispatch = useAppDispatch();
+
+  const degreeQuery = useUserDegree();
+  const allPrograms = useAllDegreesQuery();
+
+  const getUserProgramTitle = (): string => {
+    if (degreeQuery.data?.programCode) {
+      return allPrograms.data?.programs[degreeQuery.data?.programCode] || '';
+    }
+    return '';
+  };
 
   return (
     <S.BannerWrapper>
       <Title level={2} className="text">
-        {programCode} - {programName}
+        {degreeQuery.data?.programCode} - {getUserProgramTitle()}
       </Title>
-      <CourseSearchBar onSelectCallback={(courseCode) => dispatch(addTab(courseCode))} />
+      <CourseSearchBar
+        onSelectCallback={(courseCode) => dispatch(addTab(courseCode))}
+        userCourses={courses}
+      />
     </S.BannerWrapper>
   );
 };

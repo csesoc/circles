@@ -16,7 +16,7 @@ const KeyFeaturesSection = () => {
           <S.IconContainer color="#eae5ed">
             <img src={dragIconSrc} alt="" width={50} height={50} />
           </S.IconContainer>
-          <S.FeatureSubtitle startColor="#cabade" endColor="#9e88ba">
+          <S.FeatureSubtitle $startColor="#cabade" $endColor="#9e88ba">
             Drag N&apos; Drop
           </S.FeatureSubtitle>
           <S.Divider color="#c3b3c9" />
@@ -28,7 +28,7 @@ const KeyFeaturesSection = () => {
           <S.IconContainer color="#eddafc">
             <img src={flagIconSrc} alt="" width={50} height={50} />
           </S.IconContainer>
-          <S.FeatureSubtitle startColor="#9b5dea" endColor="#dbe2fc">
+          <S.FeatureSubtitle $startColor="#9b5dea" $endColor="#dbe2fc">
             Track progress
           </S.FeatureSubtitle>
           <S.Divider color="#f2ccff" />
@@ -41,7 +41,7 @@ const KeyFeaturesSection = () => {
           <S.IconContainer color="#d4ffdc">
             <img src={padlockIconSrc} alt="" width={50} height={50} />
           </S.IconContainer>
-          <S.FeatureSubtitle startColor="#9fecae" endColor="#93d392">
+          <S.FeatureSubtitle $startColor="#9fecae" $endColor="#93d392">
             Prereq Validation
           </S.FeatureSubtitle>
           <S.Divider color="#a3ebb1" />

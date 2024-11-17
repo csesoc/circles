@@ -13,15 +13,15 @@ const IconsWrapper = styled.div`
   gap: 5px;
 `;
 
-const CourseTitleWrapper = styled.div<{ selected?: boolean; locked?: boolean }>`
+const CourseTitleWrapper = styled.div<{ $selected?: boolean; $locked?: boolean }>`
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
   color: ${({ theme }) => theme.text};
 
-  font-weight: ${({ selected, locked }) => {
-    if (locked) return '100';
-    if (selected) return '700';
+  font-weight: ${({ $selected, $locked }) => {
+    if ($locked) return '100';
+    if ($selected) return '700';
     return 'normal';
   }};
 `;

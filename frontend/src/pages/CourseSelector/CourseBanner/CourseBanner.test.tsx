@@ -13,15 +13,6 @@ axiosMock.onPost('/courses/searchCourse/COMP1511').reply(200, {
   COMP1511: 'Programming Fundamentals'
 });
 
-const preloadedState = {
-  degree: {
-    programCode: '3778',
-    programName: 'Computer Science',
-    specs: ['COMPA1'],
-    isComplete: true
-  }
-};
-
 describe('CourseBanner', () => {
   const useDispatchMock = vi.spyOn(hooks, 'useAppDispatch');
 
@@ -31,7 +22,7 @@ describe('CourseBanner', () => {
   });
 
   it('should render', async () => {
-    await renderWithProviders(<CourseBanner />, { preloadedState });
+    await renderWithProviders(<CourseBanner />);
     expect(screen.getByText('3778 - Computer Science')).toBeInTheDocument();
     expect(screen.getByText('Search for a course...')).toBeInTheDocument();
   });
@@ -40,8 +31,8 @@ describe('CourseBanner', () => {
     const dummyDispatch = vi.fn();
     useDispatchMock.mockReturnValue(dummyDispatch);
 
-    await renderWithProviders(<CourseBanner />, { preloadedState });
-    await userEvent.type(screen.getByText('Search for a course...'), 'COMP1511');
+    await renderWithProviders(<CourseBanner />);
+    userEvent.type(screen.getByText('Search for a course...'), 'COMP1511');
     await userEvent.click(await screen.findByText('COMP1511: Programming Fundamentals'));
     expect(dummyDispatch).toBeCalledWith({
       payload: 'COMP1511',

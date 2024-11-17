@@ -39,31 +39,25 @@ def scrape_gened_data(year=None):
         cl_id = program[academicOrg]
 
         try:
-            resp = requests.get(URL, data=json.dumps(
-            create_payload_gened(
-                TOTAL_COURSES,
-                "unsw_psubject",
-                cl_id,
-                academicOrg,
-                year
+            resp = requests.get(
+                URL,
+                data=json.dumps(create_payload_gened(TOTAL_COURSES, "unsw_psubject", cl_id, academicOrg, year)),
+                headers=HEADERS,
+                timeout=60 * 5
             )
-        ), headers=HEADERS)
             resp.raise_for_status()
         except requests.exceptions.HTTPError as err:
             print(f"{err}+ Failed at program: {program_code}")
-            
-        r = requests.post(URL, data=json.dumps(
-                create_payload_gened(
-                    TOTAL_COURSES,
-                    "unsw_psubject",
-                    cl_id,
-                    academicOrg,
-                    year
-            )
-        ), headers=HEADERS)
+
+        r = requests.post(
+            URL,
+            data=json.dumps(create_payload_gened(TOTAL_COURSES, "unsw_psubject", cl_id, academicOrg, year)),
+            headers=HEADERS,
+            timeout=60 * 5
+        )
         new_gened_courses_raw = r.json()["contentlets"]
 
-        #gen eds by program code
+        # gen eds by program code
         courses = {}
         for course in new_gened_courses_raw:
             courses[course["code"]] = course["title"]

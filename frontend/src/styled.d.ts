@@ -1,5 +1,4 @@
 // import original module declarations
-import { StringGradients } from 'antd/lib/progress/progress';
 import 'styled-components';
 
 // and extend them!
@@ -85,8 +84,7 @@ declare module 'styled-components' {
     };
     popconfirm: {
       backgroundColor: string;
-    }
-
+    };
     infoOutlined: {
       color: string;
     };
@@ -122,7 +120,7 @@ declare module 'styled-components' {
     };
     collapseBtnIcon: {
       color: string;
-    }
+    };
     quickAddRemoveBtn: {
       addBackgroundColor: string;
       removeBackgroundColor: string;
@@ -152,6 +150,53 @@ declare module 'styled-components' {
       backgroundColor: string;
       borderColor: string;
       hoverBackgroundColor: string;
-    }
+    };
+    loginSplash?: {
+      svgColor: string;
+      backgroundColor: string;
+    };
+    searchBar: {
+      spinBackgroundColor: string;
+      backgroundColor: string;
+      boxShadow: string;
+      borderColor: string;
+      hoverBackgroundColor: string;
+    };
+    courseDescription: {
+      paddingColor: string;
+    };
+    collapseBtnIcon: {
+      color: string;
+    };
+    quickAddRemoveBtn: {
+      addBackgroundColor: string;
+      removeBackgroundColor: string;
+      addBorderColor: string;
+    };
+    graph: {
+      backgroundColor: string;
+      borderColor: string;
+      tabColor: string;
+      tabBottomBorderColor: string;
+      tabTextColor: string;
+      tabBoxShadow?: string;
+      loadingIcon?: string;
+      loadingText: string;
+    };
+    sidebarDrawer: {
+      backgroundColor: string;
+      borderColor: string;
+      hoverBackgroundColor: string;
+    };
+    genericButton: {
+      backgroundColor: string;
+      borderColor: string;
+      hoverBackgroundColor: string;
+    };
+    bugIcon: {
+      backgroundColor: string;
+      borderColor: string;
+      hoverBackgroundColor: string;
+    };
   }
 }

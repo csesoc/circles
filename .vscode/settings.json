@@ -2,18 +2,17 @@
     "eslint.workingDirectories": [
         "frontend"
     ],
+    "VitestRunner.executionArg": "npx --prefix frontend",
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true,
     "python.testing.cwd": "${workspaceFolder}/backend",
     "files.exclude": {
         "**/__pycache__": true,
         "**/.hypothesis": true,
         "**/.pytest_cache": true
     },
-    "python.linting.mypyEnabled": true,
-    "python.linting.mypyArgs": [
-        "--config-file=${workspaceFolder}/backend/mypy.ini"
-    ],
     "python.analysis.typeCheckingMode": "basic",
-    "files.eol": "\n"
+    "[python]": {
+        "editor.formatOnSave": false
+    },
+    "python.analysis.autoImportCompletions": true
 }

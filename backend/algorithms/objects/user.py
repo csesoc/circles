@@ -6,10 +6,11 @@
 """
 
 import copy
-from itertools import chain
 import json
-from typing import List, Literal, Optional, Tuple
 import re
+from itertools import chain
+from typing import List, Literal, Optional, Tuple, TypedDict
+
 from algorithms.cache.cache_config import CACHED_EQUIVALENTS_FILE, CACHED_EXCLUSIONS_FILE
 from algorithms.objects.categories import AnyCategory, Category
 
@@ -19,8 +20,16 @@ with open(CACHED_EQUIVALENTS_FILE, "r", encoding="utf8") as f:
 with open(CACHED_EXCLUSIONS_FILE, "r", encoding="utf8") as f:
     CACHED_EXCLUSIONS: dict[str, dict[str, Literal[1]]] = json.load(f)
 
+class UserJSON(TypedDict, total=False):
+    courses: dict[str, tuple[int, Optional[int]]]
+    program: Optional[str]
+    specialisations: list[str]
+    year: int
+    core_courses: list[str]
+
 class User:
     """ A user and their data which will be used to determine if they can take a course """
+    # pylint: disable=too-many-public-methods
 
     def __init__(self, data = None):
         # Will load the data if any was given
@@ -78,8 +87,14 @@ class User:
 
     def has_taken_course(self, course: str):
         """ Determines if the user has taken this course """
-        return any(c in self.courses and (self.courses[c][1] or 50) >= 50 for c in chain([course], (CACHED_EQUIVALENTS.get(course) or [])))
-    
+        return any(
+            c in self.courses and (self.courses[c][1] or 50) >= 50
+            for c in chain([course], (CACHED_EQUIVALENTS.get(course) or []))
+        )
+
+    def is_taking_specific_course(self, course):
+        """ taking a course directly, no equivalents """
+        return course in self.cur_courses
 
     def is_taking_course(self, course: str):
         """ Determines if the user is taking this course this term """
@@ -111,18 +126,18 @@ class User:
             for spec in self.specialisations
         )
 
-    def load_json(self, data):
+    def load_json(self, data: UserJSON):
         """ Given the user data, correctly loads it into this user class """
 
-        if "program" in data.keys():
+        if "program" in data:
             self.program = copy.deepcopy(data["program"])
-        if "specialisations" in data.keys():
+        if "specialisations" in data:
             self.specialisations = copy.deepcopy(data["specialisations"])
-        if "courses" in data.keys():
+        if "courses" in data:
             self.courses = copy.deepcopy(data["courses"])
-        if "year" in data.keys():
+        if "year" in data:
             self.year = copy.deepcopy(data["year"])
-        if "core_courses" in data.keys():
+        if "core_courses" in data:
             self.core_courses = copy.deepcopy(data["core_courses"])
 
     def get_grade(self, course: str):
@@ -132,19 +147,21 @@ class User:
         """
         return self.courses.get(course, (6, None))[1]
 
-    def wam(self, category: Category = AnyCategory()) -> Optional[float]:
+    def wam(self, category: Category = AnyCategory()) -> Tuple[Optional[float], bool]:
         """
         Calculates the user's WAM by taking the average of the sum of their
         marks, weighted by uoc per course.
-        Will return `None` is the user has taken no uoc.
+        Will return `None` is the user has taken no uoc, and a boolean indicating if all uoc have an associated mark.
         """
-        total_wam, total_uoc = 0, 0
+        total_mark, total_uoc, counted_uoc = 0, 0, 0
         for course, (uoc, grade) in self.courses.items():
-            if grade is not None and category.match_definition(course):
+            if category.match_definition(course):
                 total_uoc += uoc
-                total_wam += uoc * grade
+                if grade is not None:
+                    counted_uoc += uoc
+                    total_mark += uoc * grade
 
-        return None if total_uoc == 0 else total_wam / total_uoc
+        return (None if counted_uoc == 0 else total_mark / counted_uoc, total_uoc == counted_uoc and counted_uoc != 0)
 
     def uoc(self, category: Category = AnyCategory()):
         """ Given a user, returns the number of units they have taken for this uoc category """

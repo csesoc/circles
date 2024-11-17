@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { Item, TreeGraph, TreeGraphData } from '@antv/g6';
-import axios from 'axios';
-import { CourseChildren, CoursePathFrom } from 'types/api';
-import { CourseList } from 'types/courses';
+import { useCourseChildrenQuery, useCoursePrereqsQuery } from 'utils/apiHooks/static';
 import Spinner from 'components/Spinner';
 import GRAPH_STYLE from './config';
 import TREE_CONSTANTS from './constants';
@@ -15,15 +13,23 @@ type Props = {
 };
 
 const PrerequisiteTree = ({ courseCode, onCourseClick }: Props) => {
-  const [loading, setLoading] = useState(true);
+  const [initGraph, setInitGraph] = useState(true);
   const graphRef = useRef<TreeGraph | null>(null);
-  const [courseUnlocks, setCourseUnlocks] = useState<CourseList>([]);
-  const [coursesRequires, setCoursesRequires] = useState<CourseList>([]);
   const ref = useRef<HTMLDivElement | null>(null);
 
+  const childrenQuery = useCourseChildrenQuery(
+    { queryOptions: { select: (data) => data.courses } },
+    courseCode
+  );
+
+  const prereqsQuery = useCoursePrereqsQuery(
+    { queryOptions: { select: (data) => data.courses } },
+    courseCode
+  );
+
   useEffect(() => {
-    // if the course code changes, force a reload
-    setLoading(true);
+    // if the course code changes, force a reload (REQUIRED)
+    setInitGraph(true);
   }, [courseCode]);
 
   useEffect(() => {
@@ -56,76 +62,56 @@ const PrerequisiteTree = ({ courseCode, onCourseClick }: Props) => {
         const node = event.item as Item;
         if (onCourseClick) onCourseClick(node.getModel().label as string);
       });
+
+      setInitGraph(false);
     };
 
-    // NOTE: This is for hot reloading in development as new graph will instantiate every time
     const updateTreeGraph = (graphData: TreeGraphData) => {
+      // TODO: fix sizing change here (will need to use graph.changeSize with the scroll height/width)
+      // Doing so has weird interactions where it grows in width each update,
+      // which gets influenced by the margins from here and Collapsible, and by the loading spinner size (= 142px)
       if (!graphRef.current) return;
       graphRef.current.changeData(graphData);
       bringEdgeLabelsToFront(graphRef.current);
+
+      setInitGraph(false);
     };
 
-    /* REQUESTS */
-    const getCourseUnlocks = async (code: string) => {
-      try {
-        const res = await axios.get<CourseChildren>(`/courses/courseChildren/${code}`);
-        return res.data.courses;
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('Error at getCourseUnlocks', e);
-        return [];
-      }
-    };
-
-    const getCoursePrereqs = async (code: string) => {
-      try {
-        const res = await axios.get<CoursePathFrom>(`/courses/getPathFrom/${code}`);
-        return res.data.courses;
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('Error at getCoursePrereqs', e);
-        return [];
-      }
-    };
-
-    /* MAIN */
-    const setupGraph = async (c: string) => {
-      setLoading(true);
-
-      const unlocks = await getCourseUnlocks(c);
-      if (unlocks) setCourseUnlocks(unlocks);
-      const prereqs = await getCoursePrereqs(c);
-      if (prereqs) setCoursesRequires(prereqs);
-
-      // create graph data
+    if (initGraph && !childrenQuery.isPending && !prereqsQuery.isPending) {
+      const unlocks = childrenQuery.data ?? [];
+      const prereqs = prereqsQuery.data ?? [];
       const graphData = {
         id: 'root',
         label: courseCode,
         children: prereqs
-          ?.map((child) => handleNodeData(child, TREE_CONSTANTS.PREREQ))
-          .concat(unlocks?.map((child) => handleNodeData(child, TREE_CONSTANTS.UNLOCKS)))
+          .map((child) => handleNodeData(child, TREE_CONSTANTS.PREREQ))
+          .concat(unlocks.map((child) => handleNodeData(child, TREE_CONSTANTS.UNLOCKS)))
       };
 
-      // render graph
       if (!graphRef.current && graphData.children.length !== 0) {
         generateTreeGraph(graphData);
       } else {
         // NOTE: This is for hot reloading in development as new graph will instantiate every time
         updateTreeGraph(graphData);
       }
-      setLoading(false);
-    };
-
-    if (loading) {
-      setupGraph(courseCode);
-      setLoading(false);
     }
-  }, [courseCode, loading, onCourseClick]);
+  }, [
+    courseCode,
+    initGraph,
+    onCourseClick,
+    childrenQuery.data,
+    prereqsQuery.data,
+    childrenQuery.isPending,
+    prereqsQuery.isPending
+  ]);
+
+  const loading = initGraph || childrenQuery.isPending || prereqsQuery.isPending;
+  const height = calcHeight(prereqsQuery.data ?? [], childrenQuery.data ?? []);
 
   return (
-    <S.PrereqTreeContainer ref={ref} height={calcHeight(coursesRequires, courseUnlocks)}>
+    <S.PrereqTreeContainer ref={ref} $height={height}>
       {loading && <Spinner text="Loading tree..." />}
-      {!loading && graphRef.current && !graphRef.current.getEdges().length && (
+      {!loading && graphRef.current && graphRef.current.getEdges().length === 0 && (
         <p> No prerequisite visualisation is needed for this course </p>
       )}
     </S.PrereqTreeContainer>

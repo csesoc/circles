@@ -1,46 +1,75 @@
 import React, { Suspense } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
-import { Select, Switch } from 'antd';
+import { DatePicker, Modal, Select, Switch } from 'antd';
 import dayjs from 'dayjs';
-import openNotification from 'utils/openNotification';
+import { PlannerResponse } from 'types/userResponse';
+import {
+  useToggleSummerTermMutation,
+  useUpdateDegreeLengthMutation,
+  useUpdateStartYearMutation
+} from 'utils/apiHooks/user';
 import Spinner from 'components/Spinner';
-import type { RootState } from 'config/store';
-import { toggleSummer, updateDegreeLength, updateStartYear } from 'reducers/plannerSlice';
+import useSettings from 'hooks/useSettings';
 import CS from '../common/styles';
 
-const DatePicker = React.lazy(() => import('components/Datepicker'));
+type Props = {
+  planner?: PlannerResponse;
+};
 
-const SettingsMenu = () => {
+const SettingsMenu = ({ planner }: Props) => {
   const { Option } = Select;
-  const { theme } = useSelector((state: RootState) => state.settings);
-  const { isSummerEnabled, numYears, startYear } = useSelector((state: RootState) => state.planner);
+  const { theme } = useSettings();
 
-  const dispatch = useDispatch();
+  function willUnplanCourses(numYears: number) {
+    if (!planner) return false;
 
-  function handleUpdateStartYear(_: dayjs.Dayjs | null, dateString: string) {
-    if (dateString) {
-      dispatch(updateStartYear(parseInt(dateString, 10)));
+    if (numYears < planner.years.length) {
+      for (let i = numYears; i < planner.years.length; i++) {
+        if (Object.values(planner.years[i]).flat().length > 0) return true;
+      }
     }
+
+    return false;
   }
 
-  function handleUpdateDegreeLength(value: number) {
-    dispatch(updateDegreeLength(value));
-  }
+  const updateStartYearMutation = useUpdateStartYearMutation();
 
-  function handleSummerToggle() {
-    dispatch(toggleSummer());
-    if (isSummerEnabled) {
-      openNotification({
-        type: 'info',
-        message: 'Your summer term courses have been unplanned',
-        description:
-          'Courses that were planned during summer terms have been unplanned including courses that have been planned across different terms.'
+  const handleUpdateStartYear = async (_: unknown, dateString: string | string[]) => {
+    if (dateString && typeof dateString === 'string') {
+      updateStartYearMutation.mutate(dateString);
+    } else {
+      // eslint-disable-next-line no-console
+      console.error('Error updating start year. Invalid date string:', dateString);
+    }
+  };
+
+  const updateDegreeLengthMutation = useUpdateDegreeLengthMutation();
+
+  const handleUpdateDegreeLength = async (value: number) => {
+    if (willUnplanCourses(value)) {
+      Modal.confirm({
+        title: 'Unplanned Courses',
+        content:
+          'Changing the degree length will unplan courses. Are you sure you want to continue?',
+        onOk: () => updateDegreeLengthMutation.mutate(value)
       });
+    } else {
+      updateDegreeLengthMutation.mutate(value);
     }
-  }
+  };
+
+  const summerToggleMutation = useToggleSummerTermMutation();
+
+  const handleSummerToggle = async () => {
+    summerToggleMutation.mutate();
+  };
 
   const years = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+  // The settings menu *should* be disabled a layer up if there is no planner
+  if (!planner) {
+    return null;
+  }
 
   return (
     <CS.MenuPopup>
@@ -49,7 +78,7 @@ const SettingsMenu = () => {
       <CS.PopupEntry>
         <CS.MenuText>Summer Term</CS.MenuText>
         <Switch
-          defaultChecked={isSummerEnabled}
+          defaultChecked={planner.isSummerEnabled}
           onChange={handleSummerToggle}
           checkedChildren={<CheckOutlined />}
           unCheckedChildren={<CloseOutlined />}
@@ -62,14 +91,16 @@ const SettingsMenu = () => {
             onChange={handleUpdateStartYear}
             picker="year"
             style={{ width: 105 }}
-            value={dayjs().year(startYear)}
+            value={dayjs().year(planner.startYear)}
+            minDate={dayjs('2019')}
+            maxDate={dayjs().add(7, 'year')}
           />
         </Suspense>
       </CS.PopupEntry>
       <CS.PopupEntry className="settings-degree-length-popup">
         <CS.MenuText>Degree Length</CS.MenuText>
         <Select
-          value={numYears}
+          value={planner.years.length}
           style={{ width: 70 }}
           dropdownStyle={{
             backgroundColor: theme === 'light' ? '#fff' : '#444249',

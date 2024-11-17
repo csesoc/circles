@@ -1,21 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
+import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { Typography } from 'antd';
-import axios from 'axios';
-import { Course, CoursePathFrom, CoursesUnlockedWhenTaken } from 'types/api';
-import { CourseTimetable, EnrolmentCapacityData } from 'types/courseCapacity';
-import { CourseDescInfoResCache } from 'types/courseDescription';
-import { CourseList } from 'types/courses';
+import { CoursesResponse } from 'types/userResponse';
+import {
+  useCourseInfoQuery,
+  useCoursePrereqsQuery,
+  useCourseTimetableQuery
+} from 'utils/apiHooks/static';
+import { useUserCoursesUnlockedWhenTaken } from 'utils/apiHooks/user';
 import getEnrolmentCapacity from 'utils/getEnrolmentCapacity';
-import prepareUserPayload from 'utils/prepareUserPayload';
 import {
   LoadingCourseDescriptionPanel,
   LoadingCourseDescriptionPanelSidebar
 } from 'components/LoadingSkeleton';
 import PlannerButton from 'components/PlannerButton';
-import { TIMETABLE_API_URL } from 'config/constants';
-import type { RootState } from 'config/store';
 import CourseAttributes from './CourseAttributes';
 import CourseInfoDrawers from './CourseInfoDrawers';
 import S from './styles';
@@ -26,110 +24,59 @@ type CourseDescriptionPanelProps = {
   className?: string;
   courseCode: string;
   onCourseClick?: (code: string) => void;
-  courseDescInfoCache: React.MutableRefObject<CourseDescInfoResCache>;
-  hasPlannerUpdated: React.MutableRefObject<boolean>;
+  courses?: CoursesResponse;
 };
 
 const CourseDescriptionPanel = ({
   className,
   courseCode,
   onCourseClick,
-  courseDescInfoCache,
-  hasPlannerUpdated
+  courses
 }: CourseDescriptionPanelProps) => {
-  const { degree, planner } = useSelector((state: RootState) => state);
-
   const { pathname } = useLocation();
   const sidebar = pathname === '/course-selector';
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [course, setCourse] = useState<Course>();
-  const [coursesPathFrom, setCoursesPathFrom] = useState<CourseList>();
-  const [coursesUnlocked, setCoursesUnlocked] = useState<CoursesUnlockedWhenTaken>();
-  const [courseCapacity, setCourseCapacity] = useState<EnrolmentCapacityData>();
+  const coursesUnlockedQuery = useUserCoursesUnlockedWhenTaken({}, courseCode);
 
-  function unwrap<T>(res: PromiseSettledResult<T>): T | undefined {
-    if (res.status === 'rejected') {
-      // eslint-disable-next-line no-console
-      console.error('Rejected request at unwrap', res.reason);
-      return undefined;
-    }
-    return res.value;
-  }
+  const courseQuery = useCourseInfoQuery({}, courseCode);
+  const coursePrereqsQuery = useCoursePrereqsQuery({}, courseCode);
+  const courseCapacityQuery = useCourseTimetableQuery(
+    { queryOptions: { select: getEnrolmentCapacity, retry: 1, enabled: sidebar } }, // retry only once because we have bad error handling
+    courseCode
+  );
 
-  useEffect(() => {
-    // if the course code changes, force a reload
-    setIsLoading(true);
-  }, [courseCode]);
+  const loadingWrapper = (
+    <S.Wrapper $sidebar={sidebar}>
+      {!sidebar ? <LoadingCourseDescriptionPanelSidebar /> : <LoadingCourseDescriptionPanel />}
+    </S.Wrapper>
+  );
 
-  useEffect(() => {
-    const getCourseInfo = async () => {
-      try {
-        // if it's not saved already then fetch it
-        if (!courseDescInfoCache.current[courseCode]) {
-          const results = await Promise.allSettled([
-            axios.get<Course>(`/courses/getCourse/${courseCode}`),
-            axios.get<CoursePathFrom>(`/courses/getPathFrom/${courseCode}`),
-            axios.post<CoursesUnlockedWhenTaken>(
-              `/courses/coursesUnlockedWhenTaken/${courseCode}`,
-              JSON.stringify(prepareUserPayload(degree, planner))
-            ),
-            axios.get<CourseTimetable>(`${TIMETABLE_API_URL}/${courseCode}`)
-          ]);
+  if (
+    courseQuery.isPending ||
+    coursePrereqsQuery.isPending ||
+    (sidebar && courseCapacityQuery.isPending)
+  )
+    return loadingWrapper;
 
-          const [courseRes, pathFromRes, unlockedRes, courseCapRes] = results;
+  const course = courseQuery.data;
+  const coursesPathFrom = coursePrereqsQuery.data?.courses;
+  const courseCapacity = courseCapacityQuery.data;
 
-          courseDescInfoCache.current[courseCode] = {
-            course: unwrap(courseRes)?.data,
-            pathFrom: unwrap(pathFromRes)?.data.courses,
-            unlocked: unwrap(unlockedRes)?.data,
-            courseCap: getEnrolmentCapacity(unwrap(courseCapRes)?.data)
-          };
-        }
-
-        const {
-          course: courseData,
-          pathFrom,
-          unlocked,
-          courseCap
-        } = courseDescInfoCache.current[courseCode];
-
-        setCourse(courseData);
-        setCoursesPathFrom(pathFrom);
-        setCoursesUnlocked(unlocked);
-        setCourseCapacity(courseCap);
-        setIsLoading(false);
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('Error at getCourse', e);
-      }
-    };
-
-    if (isLoading) {
-      // gets the associated info for a course
-      getCourseInfo();
-    }
-  }, [courseCode, courseDescInfoCache, degree, isLoading, planner]);
-
-  if (isLoading || !course) {
-    // either still loading or the course wasn't fetchable (fatal)
-    return (
-      <S.Wrapper sidebar={sidebar}>
-        {!sidebar ? <LoadingCourseDescriptionPanelSidebar /> : <LoadingCourseDescriptionPanel />}
-      </S.Wrapper>
-    );
-  }
-
+  // course wasn't fetchable (fatal; should do proper error handling instead of indefinitely loading)
+  if (!course) return loadingWrapper;
   return (
-    <S.Wrapper sidebar={sidebar} className={className}>
+    <S.Wrapper $sidebar={sidebar} className={className}>
       <S.MainWrapper>
-        <S.TitleWrapper sidebar={sidebar}>
+        <S.TitleWrapper $sidebar={sidebar}>
           <div>
             <Title level={2} className="text">
               {courseCode} - {course.title}
             </Title>
           </div>
-          <PlannerButton course={course} hasPlannerUpdated={hasPlannerUpdated} />
+          <PlannerButton
+            course={course}
+            isAddedInPlanner={courses !== undefined && courses[course.code] !== undefined}
+          />
         </S.TitleWrapper>
         {/* TODO: Style this better? */}
         {course.is_legacy && (
@@ -147,7 +94,7 @@ const CourseDescriptionPanel = ({
         <CourseInfoDrawers
           course={course}
           pathFrom={coursesPathFrom}
-          unlocked={coursesUnlocked}
+          unlocked={coursesUnlockedQuery.data}
           onCourseClick={onCourseClick}
         />
       </S.MainWrapper>

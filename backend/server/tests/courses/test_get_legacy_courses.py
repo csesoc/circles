@@ -1,6 +1,4 @@
-import requests 
-
-
+import requests
 
 
 def test_basic_get_legacy_courses():

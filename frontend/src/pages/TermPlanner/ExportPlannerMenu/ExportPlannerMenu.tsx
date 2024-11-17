@@ -1,69 +1,36 @@
-import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
-import { Radio } from 'antd';
-import { JSONPlanner } from 'types/planner';
-import type { RootState } from 'config/store';
+import React from 'react';
+import { getUser } from 'utils/api/userApi';
+import { exportUser } from 'utils/export';
+import useToken from 'hooks/useToken';
 import CS from '../common/styles';
 import S from './styles';
 
-type Props = {
-  plannerRef: React.RefObject<HTMLDivElement>;
-};
-
-const ExportPlannerMenu = ({ plannerRef }: Props) => {
-  const exportFormats = ['png', 'jpg', 'json'];
-  const exportFields = { fileName: 'Term Planner' };
-  const planner = useSelector((state: RootState) => state.planner);
-
-  const jsonFormat: JSONPlanner = {
-    startYear: planner.startYear,
-    numYears: planner.numYears,
-    isSummerEnabled: planner.isSummerEnabled,
-    years: planner.years,
-    version: 0
-  };
-
-  const exportComponentAsJSON = () => {
-    // Download function for json file.
-    const jsonString = `data:text/json;chatset=utf-8,${encodeURIComponent(
-      JSON.stringify(jsonFormat)
-    )}`;
-    // creates an element to simulate downloading the JSON file
-    const link = document.createElement('a');
-    link.href = jsonString;
-    link.download = 'Term Planner.json';
-    link.click();
-  };
-
-  const [format, setFormat] = useState('png');
+const ExportPlannerMenu = () => {
+  const token = useToken();
 
   const download = async () => {
-    const { exportComponentAsJPEG, exportComponentAsPNG } = await import(
-      'react-component-export-image'
-    );
-    if (format === 'png') {
-      exportComponentAsPNG(plannerRef, exportFields);
-    } else if (format === 'jpg') {
-      exportComponentAsJPEG(plannerRef, exportFields);
-    } else if (format === 'json') {
-      exportComponentAsJSON();
-    }
+    getUser(token)
+      .then((user) => {
+        const exported = exportUser(user);
+        const blob = new Blob([JSON.stringify(exported)], { type: 'application/json' });
+        const jsonObjectUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = jsonObjectUrl;
+        const date = new Date();
+        a.download = `circles-planner-export-${date.toISOString()}.json`;
+        a.click();
+      })
+      .catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error('Error at exportPlannerMenu: ', err);
+      });
   };
 
   return (
     <S.Wrapper style={{ width: '240px' }}>
       <CS.MenuHeader>Export</CS.MenuHeader>
       <CS.MenuDivider />
-      <CS.PopupEntry>
-        <CS.MenuText>File Type</CS.MenuText>
-        <Radio.Group onChange={(e) => setFormat(e.target.value as string)} defaultValue="png">
-          {exportFormats.map((form) => (
-            <Radio value={form} className="text">
-              {form}
-            </Radio>
-          ))}
-        </Radio.Group>
-      </CS.PopupEntry>
+      <div>Export your planner and settings as JSON. Can be re-imported later.</div>
       <CS.Button onClick={download}> Download </CS.Button>
     </S.Wrapper>
   );

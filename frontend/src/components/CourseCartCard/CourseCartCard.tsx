@@ -3,8 +3,8 @@ import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { DeleteOutlined } from '@ant-design/icons';
 import { Button, Popconfirm, Tooltip, Typography } from 'antd';
+import { useRemoveCourseMutation } from 'utils/apiHooks/user';
 import { addTab } from 'reducers/courseTabsSlice';
-import { removeCourse } from 'reducers/plannerSlice';
 import S from './styles';
 
 const { Text } = Typography;
@@ -17,6 +17,8 @@ type Props = {
 const CourseCartCard = ({ code, title }: Props) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  const remove = useRemoveCourseMutation();
 
   const handleClick = () => {
     navigate('/course-selector');
@@ -34,7 +36,7 @@ const CourseCartCard = ({ code, title }: Props) => {
       <Popconfirm
         placement="bottomRight"
         title="Remove this course from your planner?"
-        onConfirm={() => dispatch(removeCourse(code))}
+        onConfirm={() => () => remove.mutate(code)}
         style={{ width: '200px' }}
         okText="Yes"
         cancelText="No"

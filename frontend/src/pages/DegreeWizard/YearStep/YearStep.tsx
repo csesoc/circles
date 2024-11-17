@@ -1,25 +1,41 @@
 import React, { Suspense } from 'react';
 import { animated, useSpring } from '@react-spring/web';
-import { Typography } from 'antd';
+import type { DatePickerProps } from 'antd';
+import { DatePicker, Typography } from 'antd';
+import dayjs from 'dayjs';
+import { DegreeWizardPayload } from 'types/degreeWizard';
 import Spinner from 'components/Spinner';
-import { useAppDispatch } from 'hooks';
-import { updateDegreeLength, updateStartYear } from 'reducers/plannerSlice';
 import springProps from '../common/spring';
 import Steps from '../common/steps';
 import CS from '../common/styles';
 
 const { Title } = Typography;
-const RangePicker = React.lazy(() =>
-  import('components/Datepicker').then((d) => ({ default: d.default.RangePicker }))
-);
+
+type SetState<T> = React.Dispatch<React.SetStateAction<T>>;
 
 type Props = {
   incrementStep: (stepTo?: Steps) => void;
+  setDegreeInfo: SetState<DegreeWizardPayload>;
 };
 
-const YearStep = ({ incrementStep }: Props) => {
+// Disable 10 years from the selected date
+const disable10YearsOnwards: DatePickerProps['disabledDate'] = (current, { from }) => {
+  return from !== undefined && Math.abs(current.year() - from.year()) >= 10;
+};
+
+const YearStep = ({ incrementStep, setDegreeInfo }: Props) => {
   const props = useSpring(springProps);
-  const dispatch = useAppDispatch();
+
+  const handleOnChange = async (_: unknown, [startYear, endYear]: string | string[]) => {
+    // We can trust num years to be a valid number because the range picker only allows valid ranges
+    setDegreeInfo((prev) => ({
+      ...prev,
+      startYear: parseInt(startYear, 10),
+      endYear: parseInt(endYear, 10)
+    }));
+
+    if (startYear && endYear) incrementStep(Steps.DEGREE);
+  };
 
   return (
     <CS.StepContentWrapper id="year">
@@ -28,20 +44,17 @@ const YearStep = ({ incrementStep }: Props) => {
           What years do you start and finish?
         </Title>
         <Suspense fallback={<Spinner text="Loading Year Selector..." />}>
-          <RangePicker
-            data-testid="antd-rangepicker"
+          <DatePicker.RangePicker
             picker="year"
+            data-testid="antd-rangepicker"
             size="large"
             style={{
               width: '100%'
             }}
-            onChange={(_, [startYear, endYear]: [string, string]) => {
-              const numYears = parseInt(endYear, 10) - parseInt(startYear, 10) + 1;
-              dispatch(updateDegreeLength(numYears));
-              dispatch(updateStartYear(parseInt(startYear, 10)));
-
-              if (startYear && endYear) incrementStep(Steps.DEGREE);
-            }}
+            onChange={handleOnChange}
+            minDate={dayjs('2019')}
+            maxDate={dayjs().add(7, 'year')}
+            disabledDate={disable10YearsOnwards}
           />
         </Suspense>
       </animated.div>

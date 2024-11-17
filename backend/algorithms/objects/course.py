@@ -1,6 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Tuple, TYPE_CHECKING
-
+from typing import TYPE_CHECKING, Optional, Tuple
 
 if TYPE_CHECKING:
     from algorithms.objects.conditions import Condition
@@ -25,4 +24,3 @@ class Course:
                 if new_number <= (end[0] - start[0]) * 4 + end[1] - start[1]:
                     numbers.append(new_number)
         return [[number, number] for number in numbers]
-

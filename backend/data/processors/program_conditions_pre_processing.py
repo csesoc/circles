@@ -138,7 +138,7 @@ def filter_pre_processable_conditions(program_info: Dict) -> List[Dict]:
     pipeline for the given process.
     """
     non_spec_data: List[Dict] = program_info.get("components", {}).get("non_spec_data", [])
-    if not len(non_spec_data):
+    if not non_spec_data:
         return []
 
     pre_processes_conditions: List[Dict] = []
@@ -150,4 +150,3 @@ def filter_pre_processable_conditions(program_info: Dict) -> List[Dict]:
 
 if __name__ == "__main__":
     pre_process()
-

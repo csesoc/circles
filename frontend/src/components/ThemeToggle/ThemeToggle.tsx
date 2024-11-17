@@ -1,13 +1,10 @@
 import React from 'react';
 import { IoIosSunny, IoMdMoon } from 'react-icons/io';
-import { useDispatch, useSelector } from 'react-redux';
 import { Switch } from 'antd';
-import type { RootState } from 'config/store';
-import { toggleTheme } from 'reducers/settingsSlice';
+import useSettings from 'hooks/useSettings';
 
 const ThemeToggle = () => {
-  const { theme } = useSelector((state: RootState) => state.settings);
-  const dispatch = useDispatch();
+  const { theme, mutateTheme } = useSettings();
 
   const toggleStyle = {
     backgroundColor: theme === 'light' ? '#b37feb' : '#722ed1'
@@ -15,10 +12,10 @@ const ThemeToggle = () => {
 
   return (
     <Switch
-      checkedChildren={<IoMdMoon display="flex" />}
-      unCheckedChildren={<IoIosSunny display="flex" />}
+      checkedChildren={<IoMdMoon />}
+      unCheckedChildren={<IoIosSunny />}
       defaultChecked={theme === 'dark'}
-      onChange={() => dispatch(toggleTheme(theme === 'light' ? 'dark' : 'light'))}
+      onChange={() => mutateTheme(theme === 'light' ? 'dark' : 'light')}
       style={toggleStyle}
     />
   );

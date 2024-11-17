@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
 import {
   ExpandAltOutlined,
   ShrinkOutlined,
@@ -8,14 +7,19 @@ import {
 } from '@ant-design/icons';
 import type { Graph, GraphOptions, IG6GraphEvent, INode, Item } from '@antv/g6';
 import { Switch } from 'antd';
-import axios from 'axios';
-import { CourseEdge, CoursesAllUnlocked, GraphPayload } from 'types/api';
-import { CourseValidation } from 'types/courses';
+import { CourseEdge } from 'types/api';
 import { useDebouncedCallback } from 'use-debounce';
-import prepareUserPayload from 'utils/prepareUserPayload';
+import { useProgramGraphQuery } from 'utils/apiHooks/static';
+import {
+  useUserAllUnlocked,
+  useUserCourses,
+  useUserDegree,
+  useUserPlanner
+} from 'utils/apiHooks/user';
+import { unwrapQuery } from 'utils/queryUtils';
 import Spinner from 'components/Spinner';
-import type { RootState } from 'config/store';
 import { useAppWindowSize } from 'hooks';
+import useSettings from 'hooks/useSettings';
 import { ZOOM_IN_RATIO, ZOOM_OUT_RATIO } from '../constants';
 import {
   defaultEdge,
@@ -38,7 +42,6 @@ type Props = {
   handleToggleFullscreen: () => void;
   fullscreen: boolean;
   focused?: string;
-  hasPlannerUpdated: React.MutableRefObject<boolean>;
   loading: boolean;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 };
@@ -52,42 +55,50 @@ const CourseGraph = ({
   handleToggleFullscreen,
   fullscreen,
   focused,
-  hasPlannerUpdated,
   loading,
   setLoading
 }: Props) => {
-  const { theme } = useSelector((state: RootState) => state.settings);
-  const previousTheme = useRef<typeof theme>(theme);
-  const { programCode, specs } = useSelector((state: RootState) => state.degree);
-  const { courses: plannedCourses } = useSelector((state: RootState) => state.planner);
-  const { degree, planner } = useSelector((state: RootState) => state);
-  const allUnlocked = useRef<Record<string, CourseValidation> | undefined>({});
+  const degreeQuery = useUserDegree();
+  const plannerQuery = useUserPlanner();
+  const coursesQuery = useUserCourses();
+
   const windowSize = useAppWindowSize();
+  const { theme } = useSettings();
+  const previousTheme = useRef<typeof theme>(theme);
 
   const graphRef = useRef<Graph | null>(null);
   const initialisingStart = useRef(false); // prevents multiple graphs being loaded
   const initialisingEnd = useRef(false); // unhide graph after loading complete
-  const [unlockedCourses, setUnlockedCourses] = useState(false);
   const [prerequisites, setPrerequisites] = useState<CoursePrerequisite>({});
 
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [showingUnlockedCourses, setShowingUnlockedCourses] = useState(false);
 
-  function unwrap<T>(res: PromiseSettledResult<T>): T | undefined {
-    if (res.status === 'rejected') {
-      // eslint-disable-next-line no-console
-      console.error('Rejected request at unwrap', res.reason);
-      return undefined;
-    }
-    return res.value;
-  }
+  const programGraphQuery = useProgramGraphQuery(
+    {
+      queryOptions: { enabled: !degreeQuery.isPending && degreeQuery.data && degreeQuery.isSuccess }
+    },
+    // TODO-olli: this is ugly, but we will need some interesting type rules to allow this otherwise
+    degreeQuery.data?.programCode ?? '',
+    degreeQuery.data?.specs ?? []
+  );
 
-  useEffect(() => {
-    const isCoursePrerequisite = (target: string, neighbour: string) => {
+  const coursesStateQuery = useUserAllUnlocked();
+  const coursesStatePrevLastUpdated = useRef<number>(0); // used to repaint on invalidation
+
+  const queriesSuccess =
+    degreeQuery.isSuccess && coursesQuery.isSuccess && programGraphQuery.isSuccess;
+
+  const isCoursePrerequisite = useCallback(
+    (target: string, neighbour: string) => {
       const prereqs = prerequisites[target] || [];
       return prereqs.includes(neighbour);
-    };
+    },
+    [prerequisites]
+  );
 
-    const addNeighbourStyles = async (nodeItem: Item) => {
+  const addNeighbourStyles = useCallback(
+    async (nodeItem: Item) => {
       const node = nodeItem as INode;
       const neighbours = node.getNeighbors();
       const opacity = theme === 'light' ? 0.3 : 0.4;
@@ -121,12 +132,17 @@ const CourseGraph = ({
           graphRef.current?.updateItem(n as Item, mapNodePrereq(courseId, theme));
         }
       });
-    };
+    },
+    [isCoursePrerequisite, theme]
+  );
 
-    const removeNeighbourStyles = async (nodeItem: Item) => {
+  const removeNeighbourStyles = useCallback(
+    async (nodeItem: Item) => {
       const node = nodeItem as INode;
       const edges = node.getEdges();
       const { Arrow } = await import('@antv/g6');
+      const courses = unwrapQuery(coursesQuery.data);
+      const coursesStates = unwrapQuery(coursesStateQuery.data?.courses_state);
 
       edges.forEach((e) => {
         graphRef.current?.updateItem(e, edgeUnhoverStyle(Arrow, theme, e.getID()));
@@ -135,7 +151,7 @@ const CourseGraph = ({
         const courseId = n.getID();
         graphRef.current?.updateItem(
           n as Item,
-          mapNodeStyle(courseId, plannedCourses, allUnlocked.current, theme)
+          mapNodeStyle(courseId, courseId in courses, !!coursesStates[courseId]?.unlocked, theme)
         );
         graphRef.current?.updateItem(n as Item, mapNodeOpacity(courseId, 1));
         n.toFront();
@@ -143,36 +159,94 @@ const CourseGraph = ({
       graphRef.current?.getEdges().forEach((e) => {
         graphRef.current?.updateItem(e, mapEdgeOpacity(Arrow, theme, e.getID(), 1));
       });
-    };
+    },
+    [coursesQuery.data, coursesStateQuery.data?.courses_state, theme]
+  );
 
-    // On hover: add styles
-    const addHoverStyles = (ev: IG6GraphEvent) => {
+  // On hover: add styles
+  const addHoverStyles = useCallback(
+    (ev: IG6GraphEvent) => {
       const node = ev.item as Item;
       graphRef.current?.setItemState(node, 'hover', true);
       graphRef.current?.updateItem(node, nodeLabelHoverStyle(node.getID()));
       addNeighbourStyles(node);
       graphRef.current?.paint();
-    };
+    },
+    [addNeighbourStyles]
+  );
 
-    // On hover: remove styles
-    const addUnhoverStyles = (ev: IG6GraphEvent) => {
+  // On hover: remove styles
+  const addUnhoverStyles = useCallback(
+    (ev: IG6GraphEvent) => {
+      const courses = unwrapQuery(coursesQuery.data);
       const node = ev.item as Item;
       graphRef.current?.clearItemStates(node, 'hover');
       graphRef.current?.updateItem(
         node,
-        nodeLabelUnhoverStyle(node.getID(), plannedCourses, theme)
+        nodeLabelUnhoverStyle(node.getID(), node.getID() in courses, theme)
       );
       removeNeighbourStyles(node);
       graphRef.current?.paint();
+    },
+    [coursesQuery.data, removeNeighbourStyles, theme]
+  );
+
+  // Without re-render, update styling for: each node, hovering state and edges
+  const repaintCanvas = useCallback(async () => {
+    const nodes = graphRef.current?.getNodes();
+    const courses = unwrapQuery(coursesQuery.data);
+    const coursesStates = coursesStateQuery.data?.courses_state ?? {};
+
+    nodes?.map((n) =>
+      graphRef.current?.updateItem(
+        n,
+        mapNodeStyle(n.getID(), n.getID() in courses, !!coursesStates[n.getID()]?.unlocked, theme)
+      )
+    );
+
+    graphRef.current?.off('node:mouseenter');
+    graphRef.current?.off('node:mouseleave');
+    graphRef.current?.on('node:mouseenter', async (ev) => {
+      addHoverStyles(ev);
+    });
+    graphRef.current?.on('node:mouseleave', async (ev) => {
+      addUnhoverStyles(ev);
+    });
+
+    const { Arrow } = await import('@antv/g6');
+    const edges = graphRef.current?.getEdges();
+    edges?.map((e) => graphRef.current?.updateItem(e, defaultEdge(Arrow, theme)));
+    graphRef.current?.paint();
+  }, [
+    addHoverStyles,
+    addUnhoverStyles,
+    coursesQuery.data,
+    coursesStateQuery.data?.courses_state,
+    theme
+  ]);
+
+  useEffect(() => {
+    // Store a hashmap for performance reasons when highlighting nodes
+    const makePrerequisitesMap = (edges: CourseEdge[] | undefined) => {
+      const prereqs: CoursePrerequisite = prerequisites;
+      edges?.forEach((e) => {
+        if (!prereqs[e.target]) {
+          prereqs[e.target] = [e.source];
+        } else {
+          prereqs[e.target].push(e.source);
+        }
+      });
+      setPrerequisites(prereqs);
     };
 
-    const initialiseGraph = async (
-      courseCodes: string[] | undefined,
-      courseEdges: CourseEdge[] | undefined
-    ) => {
+    const initialiseGraph = async () => {
       const container = containerRef.current;
       if (!container) return;
+      const courses = unwrapQuery(coursesQuery.data);
+      const programs = unwrapQuery(programGraphQuery.data);
+      const coursesStates = unwrapQuery(coursesStateQuery.data?.courses_state);
 
+      makePrerequisitesMap(programs?.edges);
       const { Graph, Arrow } = await import('@antv/g6');
 
       const graphArgs: GraphOptions = {
@@ -203,11 +277,12 @@ const CourseGraph = ({
         defaultEdge: defaultEdge(Arrow, theme),
         nodeStateStyles
       };
-
       graphRef.current = new Graph(graphArgs);
       const data = {
-        nodes: courseCodes?.map((c) => mapNodeStyle(c, plannedCourses, allUnlocked.current, theme)),
-        edges: courseEdges
+        nodes: programs.courses?.map((c) =>
+          mapNodeStyle(c, c in courses, !!coursesStates[c]?.unlocked, theme)
+        ),
+        edges: programs.edges
       };
 
       // Hide graph until it's finished loaded, due to incomplete initial graph generation
@@ -231,77 +306,18 @@ const CourseGraph = ({
       });
     };
 
-    // Store a hashmap for performance reasons when highlighting nodes
-    const makePrerequisitesMap = (edges: CourseEdge[] | undefined) => {
-      const prereqs: CoursePrerequisite = prerequisites;
-      edges?.forEach((e) => {
-        if (!prereqs[e.target]) {
-          prereqs[e.target] = [e.source];
-        } else {
-          prereqs[e.target].push(e.source);
-        }
-      });
-      setPrerequisites(prereqs);
-    };
-
-    // Without re-render, update styling for: each node, hovering state and edges
-    const repaintCanvas = async () => {
-      const nodes = graphRef.current?.getNodes();
-      nodes?.map((n) =>
-        graphRef.current?.updateItem(
-          n,
-          mapNodeStyle(n.getID(), plannedCourses, allUnlocked.current, theme)
-        )
-      );
-
-      graphRef.current?.off('node:mouseenter');
-      graphRef.current?.off('node:mouseleave');
-      graphRef.current?.on('node:mouseenter', async (ev) => {
-        addHoverStyles(ev);
-      });
-      graphRef.current?.on('node:mouseleave', async (ev) => {
-        addUnhoverStyles(ev);
-      });
-
-      const { Arrow } = await import('@antv/g6');
-      const edges = graphRef.current?.getEdges();
-      edges?.map((e) => graphRef.current?.updateItem(e, defaultEdge(Arrow, theme)));
-      graphRef.current?.paint();
-    };
-
-    const getUnlocked = async () => {
-      try {
-        setLoading(true);
-        const res = await axios.post<CoursesAllUnlocked>(
-          '/courses/getAllUnlocked/',
-          JSON.stringify(prepareUserPayload(degree, planner))
-        );
-        allUnlocked.current = res.data.courses_state;
-        repaintCanvas();
-        setLoading(false);
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error('Error at updating allUnlocked', err);
-      }
-    };
-
     const setupGraph = async () => {
       try {
+        if (
+          !degreeQuery.data ||
+          !coursesQuery.data ||
+          !plannerQuery.data ||
+          !programGraphQuery.data ||
+          !coursesStateQuery.data
+        )
+          return;
         initialisingStart.current = true;
-        const res = await Promise.allSettled([
-          axios.get<GraphPayload>(`/programs/graph/${programCode}/${specs.join('+')}`),
-          axios.post<CoursesAllUnlocked>(
-            '/courses/getAllUnlocked/',
-            JSON.stringify(prepareUserPayload(degree, planner))
-          )
-        ]);
-        const [programsRes, coursesRes] = res;
-        const programs = unwrap(programsRes)?.data;
-        allUnlocked.current = unwrap(coursesRes)?.data.courses_state;
-        makePrerequisitesMap(programs?.edges);
-        if (programs?.courses.length !== 0 && programs?.edges.length !== 0) {
-          initialiseGraph(programs?.courses, programs?.edges);
-        }
+        initialiseGraph();
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('Error at setupGraph', e);
@@ -309,27 +325,39 @@ const CourseGraph = ({
     };
 
     if (!initialisingStart.current) setupGraph();
-    if (hasPlannerUpdated.current) {
-      hasPlannerUpdated.current = false;
-      getUnlocked();
-    }
+  }, [
+    onNodeClick,
+    degreeQuery,
+    theme,
+    prerequisites,
+    setLoading,
+    coursesQuery.data,
+    plannerQuery.data,
+    programGraphQuery.data,
+    coursesStateQuery.data,
+    addHoverStyles,
+    addUnhoverStyles,
+    repaintCanvas
+  ]);
+
+  useEffect(() => {
     // Change theme without re-render
     if (previousTheme.current !== theme) {
       previousTheme.current = theme;
       repaintCanvas();
     }
-  }, [
-    onNodeClick,
-    plannedCourses,
-    programCode,
-    specs,
-    theme,
-    prerequisites,
-    degree,
-    planner,
-    hasPlannerUpdated,
-    setLoading
-  ]);
+  }, [repaintCanvas, theme]);
+
+  useEffect(() => {
+    // update unlocked courses without re-render
+    if (
+      coursesStatePrevLastUpdated.current !== 0 &&
+      coursesStatePrevLastUpdated.current !== coursesStateQuery.dataUpdatedAt
+    ) {
+      repaintCanvas();
+    }
+    coursesStatePrevLastUpdated.current = coursesStateQuery.dataUpdatedAt;
+  }, [repaintCanvas, coursesStateQuery.dataUpdatedAt]);
 
   // Show all nodes and edges once graph is initially loaded
   useEffect(() => {
@@ -348,32 +376,22 @@ const CourseGraph = ({
 
   const showUnlockedCourses = useCallback(async () => {
     if (!graphRef.current) return;
-    try {
-      setLoading(true);
-      const {
-        data: { courses_state: coursesStates }
-      } = await axios.post<CoursesAllUnlocked>(
-        '/courses/getAllUnlocked/',
-        JSON.stringify(prepareUserPayload(degree, planner))
-      );
-      graphRef.current.getNodes().forEach((n) => {
-        const id = n.getID();
-        if (coursesStates[id]?.unlocked) {
-          n.show();
-          n.getOutEdges().forEach((e) => {
-            if (coursesStates[e.getTarget().getID()]?.unlocked) e.show();
-          });
-        } else {
-          n.hide();
-          n.getEdges().forEach((e) => e.hide());
-        }
-      });
-      setLoading(false);
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('Error at showUnlockedCourses', e);
-    }
-  }, [degree, planner, setLoading]);
+    const coursesStates = coursesStateQuery.data?.courses_state ?? {};
+
+    graphRef.current.getNodes().forEach((n) => {
+      const id = n.getID();
+
+      if (coursesStates[id]?.unlocked) {
+        n.show();
+        n.getOutEdges().forEach((e) => {
+          if (coursesStates[e.getTarget().getID()]?.unlocked) e.show();
+        });
+      } else {
+        n.hide();
+        n.getEdges().forEach((e) => e.hide());
+      }
+    });
+  }, [coursesStateQuery.data]);
 
   const handleZoomIn = () => {
     const viewportCenter = graphRef.current?.getViewPortCenterPoint();
@@ -419,13 +437,14 @@ const CourseGraph = ({
   }, [fullscreen, resizeGraph]);
 
   useEffect(() => {
-    if (unlockedCourses) showUnlockedCourses();
+    if (!queriesSuccess) return;
+    if (showingUnlockedCourses) showUnlockedCourses();
     else showAllCourses();
-  }, [planner.courses, showUnlockedCourses, unlockedCourses]);
+  }, [showUnlockedCourses, showingUnlockedCourses, queriesSuccess]);
 
   return (
     <S.Wrapper ref={containerRef}>
-      {loading ? (
+      {loading || !queriesSuccess ? (
         <S.SpinnerWrapper className="spinner-wrapper">
           <Spinner text="Loading graph..." />
         </S.SpinnerWrapper>
@@ -433,8 +452,8 @@ const CourseGraph = ({
         <S.ToolsWrapper>
           Show All Courses
           <Switch
-            checked={!unlockedCourses}
-            onChange={() => setUnlockedCourses((prevState) => !prevState)}
+            checked={!showingUnlockedCourses}
+            onChange={() => setShowingUnlockedCourses((prevState) => !prevState)}
           />
           <S.Button onClick={handleZoomIn} icon={<ZoomInOutlined />} />
           <S.Button onClick={handleZoomOut} icon={<ZoomOutOutlined />} />

@@ -1,27 +1,20 @@
 import React, { useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import { LoadingOutlined } from '@ant-design/icons';
 import { Spin } from 'antd';
-import axios from 'axios';
-import { Course } from 'types/api';
-import { JSONPlanner, PlannerCourse, Term } from 'types/planner';
+import { useImportUserMutation } from 'utils/apiHooks/user';
+import { importUser, UserJson } from 'utils/export';
 import openNotification from 'utils/openNotification';
-import type { RootState } from 'config/store';
-import {
-  addToUnplanned,
-  moveCourse,
-  setUnplannedCourseToTerm,
-  toggleSummer,
-  updateDegreeLength,
-  updateStartYear
-} from 'reducers/plannerSlice';
 import CS from '../common/styles';
 import S from './styles';
 
 const ImportPlannerMenu = () => {
-  const planner = useSelector((state: RootState) => state.planner);
+  const importUserMutation = useImportUserMutation();
+
+  const handleImport = (user: UserJson) => {
+    importUserMutation.mutate(user);
+  };
+
   const inputRef = useRef<HTMLInputElement>(null);
-  const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
 
   const upload = () => {
@@ -43,114 +36,39 @@ const ImportPlannerMenu = () => {
       return;
     }
 
-    const plannedCourses: string[] = [];
-    planner.years.forEach((year) => {
-      Object.values(year).forEach((termKey) => {
-        termKey.forEach((code) => {
-          plannedCourses.push(code);
-        });
-      });
-    });
-
     setLoading(true);
     const reader = new FileReader();
     reader.readAsText(e.target.files[0], 'UTF-8');
-    reader.onload = (ev) => {
-      if (ev.target !== null) {
-        const content = ev.target.result;
-        e.target.value = '';
-
-        try {
-          const fileInJson = JSON.parse(content as string) as JSONPlanner;
-          if (
-            !Object.prototype.hasOwnProperty.call(fileInJson, 'startYear') ||
-            !Object.prototype.hasOwnProperty.call(fileInJson, 'numYears') ||
-            !Object.prototype.hasOwnProperty.call(fileInJson, 'isSummerEnabled') ||
-            !Object.prototype.hasOwnProperty.call(fileInJson, 'years') ||
-            !Object.prototype.hasOwnProperty.call(fileInJson, 'version')
-          ) {
-            openNotification({
-              type: 'error',
-              message: 'Invalid structure of the JSON file',
-              description: 'The structure of the JSON file is not valid.'
-            });
-            return;
-          }
-          dispatch(updateDegreeLength(fileInJson.numYears));
-          dispatch(updateStartYear(fileInJson.startYear));
-          if (planner.isSummerEnabled !== fileInJson.isSummerEnabled) {
-            dispatch(toggleSummer());
-          }
-          fileInJson.years.forEach((year, yearIndex) => {
-            Object.entries(year).forEach(([term, termCourses]) => {
-              termCourses.forEach(async (code, index) => {
-                const { data: course } = await axios.get<Course>(`/courses/getCourse/${code}`);
-                const courseData: PlannerCourse = {
-                  title: course.title,
-                  termsOffered: course.terms,
-                  UOC: course.UOC,
-                  plannedFor: null,
-                  prereqs: course.raw_requirements,
-                  isLegacy: course.is_legacy,
-                  isUnlocked: true,
-                  warnings: [],
-                  handbookNote: course.handbook_note,
-                  isAccurate: course.is_accurate,
-                  isMultiterm: course.is_multiterm,
-                  supressed: false,
-                  // TODO: should actually hydrate people's mark
-                  // and also their suppressions and ignoreFromProgression
-                  // Maybe we don't need to worry about this as
-                  // exporting / importing becomes redundant with accounts
-                  ignoreFromProgression: false,
-                  mark: undefined // TODO: WTF?
-                };
-
-                if (plannedCourses.indexOf(course.code) === -1) {
-                  plannedCourses.push(course.code);
-                  dispatch(addToUnplanned({ courseCode: course.code, courseData }));
-                  const destYear = Number(yearIndex) + Number(planner.startYear);
-                  const destTerm = term as Term;
-                  const destRow = destYear - planner.startYear;
-                  const destIndex = index;
-                  dispatch(
-                    moveCourse({
-                      course: code,
-                      destTerm: `${destYear}${destTerm}`,
-                      srcTerm: 'unplanned'
-                    })
-                  );
-                  dispatch(
-                    setUnplannedCourseToTerm({
-                      destRow,
-                      destTerm,
-                      destIndex,
-                      course: code
-                    })
-                  );
-                }
-              });
-            });
-          });
-          setLoading(false);
-        } catch (err) {
-          setLoading(false);
-          // eslint-disable-next-line no-console
-          console.error('Error at uploadedJSONFile', err);
-          openNotification({
-            type: 'error',
-            message: 'Invalid JSON format',
-            description: 'An error occured when parsing the JSON file'
-          });
-          return;
-        }
-
-        openNotification({
-          type: 'success',
-          message: 'JSON Imported',
-          description: 'Planner has been successfully imported.'
-        });
+    reader.onload = async (ev) => {
+      if (ev.target === null) {
+        return;
       }
+
+      const content = ev.target.result;
+      e.target.value = '';
+
+      try {
+        const fileInJson = JSON.parse(content as string) as JSON;
+        const user = importUser(fileInJson);
+        handleImport(user);
+        setLoading(false);
+      } catch (err) {
+        setLoading(false);
+        // eslint-disable-next-line no-console
+        console.error('Error at uploadedJSONFile', err);
+        openNotification({
+          type: 'error',
+          message: 'Invalid JSON format',
+          description: 'An error occured when parsing the JSON file'
+        });
+        return;
+      }
+
+      openNotification({
+        type: 'success',
+        message: 'JSON Imported',
+        description: 'Planner has been successfully imported.'
+      });
     };
   };
 

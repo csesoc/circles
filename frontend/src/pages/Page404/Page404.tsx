@@ -9,40 +9,40 @@ const Page404 = () => {
   const navigate = useNavigate();
 
   return (
-    <PageTemplate>
+    <PageTemplate showHeader={false}>
       <S.PageWrapper>
         <S.GridCircleWrapper>
           <S.LogoBox>
             <img alt="circles-logo" src={circlesLogo} width="200" height="200" />
           </S.LogoBox>
-          <S.LogoBox alt>
+          <S.LogoBox $alt>
             <img alt="circles-logo" src={circlesLogo} width="200" height="200" />
           </S.LogoBox>
           <S.LogoBox>
             <img alt="circles-logo" src={circlesLogo} width="200" height="200" />
           </S.LogoBox>
-          <S.LogoBox alt>
+          <S.LogoBox $alt>
             <img alt="circles-logo" src={circlesLogo} width="200" height="200" />
           </S.LogoBox>
-          <S.LogoBox alt>
-            <img alt="circles-logo" src={circlesLogo} width="200" height="200" />
-          </S.LogoBox>
-          <S.LogoBox>
-            <img alt="circles-logo" src={circlesLogo} width="200" height="200" />
-          </S.LogoBox>
-          <S.LogoBox alt>
+          <S.LogoBox $alt>
             <img alt="circles-logo" src={circlesLogo} width="200" height="200" />
           </S.LogoBox>
           <S.LogoBox>
             <img alt="circles-logo" src={circlesLogo} width="200" height="200" />
           </S.LogoBox>
-          <S.LogoBox alt>
+          <S.LogoBox $alt>
             <img alt="circles-logo" src={circlesLogo} width="200" height="200" />
           </S.LogoBox>
           <S.LogoBox>
             <img alt="circles-logo" src={circlesLogo} width="200" height="200" />
           </S.LogoBox>
-          <S.LogoBox alt>
+          <S.LogoBox $alt>
+            <img alt="circles-logo" src={circlesLogo} width="200" height="200" />
+          </S.LogoBox>
+          <S.LogoBox>
+            <img alt="circles-logo" src={circlesLogo} width="200" height="200" />
+          </S.LogoBox>
+          <S.LogoBox $alt>
             <img alt="circles-logo" src={circlesLogo} width="200" height="200" />
           </S.LogoBox>
           <S.LogoBox>
@@ -53,7 +53,7 @@ const Page404 = () => {
       <S.TextWrapper>
         <S.Title404>404</S.Title404>
         <S.Text404>PAGE NOT FOUND</S.Text404>
-        <Button type="primary" size="large" onClick={() => navigate('/course-selector')}>
+        <Button type="primary" size="large" onClick={() => navigate('/')}>
           Go Back Home
         </Button>
       </S.TextWrapper>

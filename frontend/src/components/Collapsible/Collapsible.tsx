@@ -21,7 +21,7 @@ const Collapsible = ({ initiallyCollapsed = false, title, children, headerStyle 
   return (
     <div>
       <S.CollapsibleHeader onClick={toggleCollapse} style={headerStyle}>
-        <S.CollapseButton collapsed={isCollapsed} />
+        <S.CollapseButton $collapsed={isCollapsed} />
         {typeof title === 'string' ? (
           <Title level={3} className="text">
             {title}
@@ -30,7 +30,7 @@ const Collapsible = ({ initiallyCollapsed = false, title, children, headerStyle 
           title
         )}
       </S.CollapsibleHeader>
-      <S.CollapsibleContent collapsed={isCollapsed}>{children}</S.CollapsibleContent>
+      <S.CollapsibleContent $collapsed={isCollapsed}>{children}</S.CollapsibleContent>
     </div>
   );
 };

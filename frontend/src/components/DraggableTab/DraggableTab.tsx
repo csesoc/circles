@@ -66,7 +66,7 @@ const DraggableTab = ({ tabName, index }: Props) => {
         {(draggableProvided) => (
           <S.DraggableTabWrapper
             role="tab"
-            active={index === active}
+            $active={index === active}
             onClick={() => dispatch(setActiveTab(index))}
             ref={(r) => {
               ref.current = r;

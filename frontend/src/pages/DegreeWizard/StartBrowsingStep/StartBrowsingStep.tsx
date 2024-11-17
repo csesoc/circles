@@ -1,32 +1,43 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from 'antd';
+import { DegreeWizardPayload } from 'types/degreeWizard';
+import { useSetupDegreeWizardMutation } from 'utils/apiHooks/user';
 import openNotification from 'utils/openNotification';
-import type { RootState } from 'config/store';
-import { useAppDispatch, useAppSelector } from 'hooks';
-import { setIsComplete } from 'reducers/degreeSlice';
 import CS from '../common/styles';
 import S from './styles';
 
-const StartBrowsingStep = () => {
-  const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const { programCode, specs } = useAppSelector((state: RootState) => state.degree);
+type Props = {
+  degreeInfo: DegreeWizardPayload;
+};
 
-  const handleSaveUserSettings = () => {
-    if (!programCode) {
+const StartBrowsingStep = ({ degreeInfo }: Props) => {
+  const navigate = useNavigate();
+
+  const setupDegreeMutation = useSetupDegreeWizardMutation({
+    mutationOptions: { onSuccess: () => navigate('/course-selector') }
+  });
+
+  const handleSetupDegree = () => {
+    setupDegreeMutation.mutate(degreeInfo);
+  };
+
+  const handleSaveUserSettings = async () => {
+    // TODO: Rewrite these checks in the backend
+    // The check below is not always required, i.e. 3362
+    // If we do this at the backend, we can check everything, and only when needed
+    if (!degreeInfo.programCode) {
       openNotification({
         type: 'error',
         message: 'Please select a degree'
       });
-    } else if (!specs.length) {
+    } else if (!degreeInfo.specs.length) {
       openNotification({
         type: 'error',
         message: 'Please select a specialisation'
       });
     } else {
-      dispatch(setIsComplete(true));
-      navigate('/course-selector');
+      handleSetupDegree();
     }
   };
 

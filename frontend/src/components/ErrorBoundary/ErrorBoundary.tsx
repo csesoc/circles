@@ -87,7 +87,7 @@ class ErrorBoundary extends React.Component<Props, State> {
           <h3>Error</h3>
           <p>{JSON.stringify(error, Object.getOwnPropertyNames(error))}</p>
           <h3>Error Info</h3>
-          <p>{errorInfo?.componentStack.toString()}</p>
+          <p>{errorInfo?.componentStack?.toString()}</p>
         </S.Container>
       );
     }

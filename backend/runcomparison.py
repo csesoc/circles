@@ -2,9 +2,10 @@
 
 
 import argparse
-from contextlib import suppress
 import json
+from contextlib import suppress
 from sys import exit
+
 from data.processors.models import Course
 
 parser = argparse.ArgumentParser()

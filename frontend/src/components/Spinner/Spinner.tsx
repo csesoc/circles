@@ -5,13 +5,25 @@ import S from './styles';
 
 type Props = {
   text: string;
+  size?: 'small' | 'large';
 };
 
-const Spinner = ({ text }: Props) => (
-  <S.Wrapper className="loading-spinner">
-    <Spin indicator={<LoadingOutlined style={{ fontSize: '2.5rem' }} spin />} />
-    <p>{text}</p>
-  </S.Wrapper>
-);
+const Spinner = ({ text, size = 'large' }: Props) => {
+  // Small Spinner
+  if (size === 'small') {
+    return (
+      <S.SmallWrapper className="loading-spinner">
+        <Spin indicator={<LoadingOutlined spin />} size="small" />
+        <p>{text}</p>
+      </S.SmallWrapper>
+    );
+  }
+  return (
+    <S.LargeWrapper className="loading-spinner">
+      <Spin indicator={<LoadingOutlined spin />} size="large" />
+      <p>{text}</p>
+    </S.LargeWrapper>
+  );
+};
 
 export default Spinner;

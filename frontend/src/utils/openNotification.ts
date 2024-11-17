@@ -1,6 +1,8 @@
 import React from 'react';
 import { notification } from 'antd';
-import type { IconType } from 'antd/lib/notification';
+import { ArgsProps } from 'antd/lib/notification';
+
+type IconType = ArgsProps['type'];
 
 type Props = {
   type: IconType;

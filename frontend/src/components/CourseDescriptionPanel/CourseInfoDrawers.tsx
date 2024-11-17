@@ -1,13 +1,13 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
 import { Typography } from 'antd';
 import { Course, CoursesUnlockedWhenTaken } from 'types/api';
 import { CourseList } from 'types/courses';
+import { badCourses, badValidations } from 'types/userResponse';
+import { useUserCourses, useUserTermValidations } from 'utils/apiHooks/user';
 import Collapsible from 'components/Collapsible';
 import CourseTag from 'components/CourseTag';
 import PrerequisiteTree from 'components/PrerequisiteTree';
 import { inDev } from 'config/constants';
-import type { RootState } from 'config/store';
 import S from './styles';
 
 const { Text } = Typography;
@@ -25,17 +25,18 @@ const CourseInfoDrawers = ({
   pathFrom = [],
   unlocked
 }: CourseInfoDrawersProps) => {
-  const { planner, courses } = useSelector((state: RootState) => state);
+  const courses = useUserCourses().data || badCourses;
 
   const pathFromInPlanner = pathFrom.filter((courseCode) =>
-    Object.keys(planner.courses).includes(courseCode)
+    Object.keys(courses).includes(courseCode)
   );
   const pathFromNotInPlanner = pathFrom.filter(
-    (courseCode) => !Object.keys(planner.courses).includes(courseCode)
+    (courseCode) => !Object.keys(courses).includes(courseCode)
   );
-  const isUnlocked = courses.courses[course.code]?.unlocked;
-  const inPlanner = planner.courses[course.code];
-
+  const inPlanner = !!courses[course.code];
+  const validateQuery = useUserTermValidations();
+  const validations = validateQuery.data ?? badValidations;
+  const isUnlocked = validations.courses_state[course.code];
   return (
     <div className="course-info-drawers">
       <Collapsible title="Overview">
@@ -93,7 +94,7 @@ const CourseInfoDrawers = ({
         ) : (
           <S.TextBlock>
             {inPlanner
-              ? "This course have already been added to your planner and hence can't unlock anymore courses."
+              ? "This course have already been added to your planner and hence can't unlock any more courses."
               : 'No courses will be unlocked after completing this course.'}
           </S.TextBlock>
         )}
@@ -113,7 +114,7 @@ const CourseInfoDrawers = ({
         ) : (
           <S.TextBlock>
             {inPlanner
-              ? "This course have already been added to your planner and hence can't unlock anymore courses."
+              ? "This course have already been added to your planner and hence can't unlock any more courses."
               : 'No courses will be indirectly unlocked after completing this course.'}
           </S.TextBlock>
         )}

@@ -1,7 +1,7 @@
 import json
-import requests
 import random
 
+import requests
 from server.routers.model import CONDITIONS
 
 PATH="./algorithms/tests/exampleUsers.json"
@@ -32,7 +32,7 @@ def test_get_course_all_courses():
     failed_courses = {
         course for course in CONDITIONS.keys()
         if (
-            # random.random() < 0.5 and # Comment out this line to test all courses
+            # random.random() < 0.5 and  # Comment out this line to test all courses
             requests.get(f'http://127.0.0.1:8000/courses/getCourse/{course}').status_code != 200
         )
     }
@@ -40,12 +40,12 @@ def test_get_course_all_courses():
     # Offered alternate years => offered alternate years (not this year) but entry exists
     # Not Offered => it is not offered, no further information, entry exists
     known_failed_courses: set[str] = {
-        'PSCY9914', # Offered alternate years
-        'BEES3223', # Offered alternate years
-        'CEIC6714', # Not offered this year
-        'PSCY9901', # Offered alternate years
-        'PSCY9912', # Offered alternate years
-        'PHCM9612', # Not offered this year
+        'PSCY9914',  # Offered alternate years
+        'BEES3223',  # Offered alternate years
+        'CEIC6714',  # Not offered this year
+        'PSCY9901',  # Offered alternate years
+        'PSCY9912',  # Offered alternate years
+        'PHCM9612',  # Not offered this year
     }
     failed_courses = failed_courses.difference(known_failed_courses)
     print(failed_courses)

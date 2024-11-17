@@ -1,6 +1,6 @@
 {
     "empty_year": {
-        "program": "3707",
+        "programCode": "3707",
         "specialisations": ["COMPA1"],
         "year": 1,
         "plan": [
@@ -10,14 +10,10 @@
                 {},
                 {}
             ]
-        ],
-        "mostRecentPastTerm": {
-            "Y": 1,
-            "T": 0
-        }
+        ]
     },
     "simple_year": {
-        "program": "3707",
+        "programCode": "3707",
         "specialisations": ["COMPA1"],
         "year": 1,
         "plan": [
@@ -36,14 +32,10 @@
                 {
                 }
             ]
-        ],
-        "mostRecentPastTerm": {
-            "Y": 1,
-            "T": 0
-        }
+        ]
     },
     "no_uoc": {
-        "program": "3707",
+        "programCode": "3707",
         "specialisations": ["COMPA1"],
         "year": 1,
         "plan": [
@@ -62,14 +54,10 @@
                 {
                 }
             ]
-        ],
-        "mostRecentPastTerm": {
-            "Y": 1,
-            "T": 0
-        }
+        ]
     },
     "out_of_order": {
-        "program": "3707",
+        "programCode": "3707",
         "specialisations": ["COMPA1"],
         "year": 1,
         "plan": [
@@ -84,14 +72,10 @@
                 {
                 }
             ]
-        ],
-        "mostRecentPastTerm": {
-            "Y": 1,
-            "T": 0
-        }
+        ]
     },
     "suppress_warning": {
-        "program": "3707",
+        "programCode": "3707",
         "specialisations": ["COMPA1"],
         "year": 1,
         "plan": [
@@ -110,10 +94,6 @@
                 {
                 }
             ]
-        ],
-        "mostRecentPastTerm": {
-            "Y": 1,
-            "T": 2
-        }
+        ]
     }
 }

@@ -1,20 +1,10 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
 import { Typography } from 'antd';
-import axios from 'axios';
 import styled from 'styled-components';
-import prepareCoursesForValidationPayload from 'utils/prepareCoursesForValidationPayload';
-import { RootState } from 'config/store';
+import { CtfResult, validateCtf as validateCtfRequest } from 'utils/api/ctfApi';
+import useToken from 'hooks/useToken';
 import CS from '../common/styles';
 import S from './styles';
-
-type CtfResult = {
-  valid: boolean;
-  failed: number;
-  passed: Array<string>;
-  message: string;
-  flags: Array<string>;
-};
 
 const { Text, Title } = Typography;
 
@@ -39,18 +29,14 @@ const ModalTitle = styled(Title)`
 
 // TODO: hide this behind a feature flag?
 const ValidateCtfButton = () => {
-  const planner = useSelector((state: RootState) => state.planner);
-  const degree = useSelector((state: RootState) => state.degree);
   const [open, setOpen] = React.useState(false);
   const [result, setResult] = React.useState(loadingResult);
+  const token = useToken();
 
   const validateCtf = async () => {
     setOpen(true);
-    const res = await axios.post<CtfResult>(
-      '/ctf/validateCtf/',
-      prepareCoursesForValidationPayload(planner, degree, false)
-    );
-    setResult(res.data);
+    const res = await validateCtfRequest(token);
+    setResult(res);
   };
 
   return (

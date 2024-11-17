@@ -6,7 +6,7 @@
 extension-pkg-whitelist=
 
 # Specify a score threshold to be exceeded before program exits with error.
-fail-under=9.5
+fail-under=10
 
 # Add files or directories to the blacklist. They should be base names, not
 # paths.
@@ -68,14 +68,17 @@ disable=import-error,                     # allow import from folder.file instea
         expression-not-assigned,          # allow for expressions to be evaluated without assignment. - used in create.py for fastforwarding indexes with list comprehension
         invalid-name,                     # dont enforce variables to be snake_case
         redefined-builtin,                # allow builtins to be redefined. particularly `exit()`
-        import-outside-toplevel,          # allow non-top level imports. used to prevent circular dependencies
         line-too-long,                    # disable enforcing max line width
         unnecessary-pass,                 # allows def func(): pass. useful for abstract functions and superclasses
         anomalous-backslash-in-string,    # allow backslashes in strings to allow regex expressions to be used in docstrings
         global-statement,                 # allow use of globals. Used for filepaths and configs
         too-few-public-methods,           # need classes with zero public methods as abstract objects
         duplicate-code,                   # Code duplication due to progtype1. TODO: Fix on complete refactor
-        no-name-in-module                 # seems to be similar to import-error
+        no-name-in-module,                # seems to be similar to import-error
+        useless-parent-delegation,        # allow for methods that just return super().method()
+        missing-module-docstring,         # allow for missing module docstrings, democratially ignored
+        missing-function-docstring,       # TODO: be much more selective with these, and docstring most functions 
+        missing-class-docstring,          # 
       #   parameter-unpacking,      
       #   unpacking-in-except,
       #   old-raise-syntax,
@@ -159,7 +162,7 @@ disable=import-error,                     # allow import from folder.file instea
 # either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once). See also the "--disable" option for examples.
-enable=c-extension-no-member
+enable=c-extension-no-member #, useless-suppression
 
 
 [REPORTS]
@@ -449,11 +452,12 @@ good-names=i,
            k,
            ex,
            Run,
-           _
+           _,
+           f
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted
-good-names-rgxs=
+good-names-rgxs=^([A-Z]{4})_FIXES
 
 # Include a hint for the correct naming format with invalid-name.
 include-naming-hint=no

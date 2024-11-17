@@ -370,6 +370,10 @@ export const lightTheme: DefaultTheme = {
     backgroundColor: '#fff',
     borderColor: '#d9d9d9',
     hoverBackgroundColor: '#fff'
+  },
+  loginSplash: {
+    svgColor: '#9453e6',
+    backgroundColor: '#f8f8f9'
   }
 };
 
@@ -514,8 +518,12 @@ export const darkTheme: DefaultTheme = {
     hoverBackgroundColor: '#343239'
   },
   bugIcon: {
-    backgroundColor: '#444249',
+    backgroundColor: darkBaseColors.purpleLight,
     borderColor: '#5f5a64',
     hoverBackgroundColor: '#6d6772'
+  },
+  loginSplash: {
+    svgColor: '#332643',
+    backgroundColor: '#191b1b'
   }
 };

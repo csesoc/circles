@@ -1,11 +1,11 @@
 # Sets up the backend, without writing data into the database.
 
 # Python image
-FROM python:3.11.5-slim
+FROM python:3.12.3-slim
 
-# gcc required for python-Levenshtein
+# gcc required for python-Levenshtein, curl required for healthcheck
 RUN apt-get update \
-    && apt-get install gcc -y \
+    && apt-get install gcc curl -y \
     && apt-get clean
 
 # Set current working directory inside container to /backend
@@ -21,7 +21,5 @@ COPY . .
 # Expose port 8000 to the outside world
 EXPOSE 8000
 
-# ENV OVERWRITE='False'
-
 # Run the server
-ENTRYPOINT ["python3", "-u", "runserver.py", "--overwrite"]
+ENTRYPOINT ["python3", "-u", "runserver.py", "--overwrite-course-data"]

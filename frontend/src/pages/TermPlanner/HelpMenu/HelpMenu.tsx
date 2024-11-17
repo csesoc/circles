@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
 import additionalOptionsGifDark from 'assets/TermPlannerHelp/additional-options-dark.gif';
 import additionalOptionsPicDark from 'assets/TermPlannerHelp/additional-options-dark.jpg';
 import additionalOptionsGifLight from 'assets/TermPlannerHelp/additional-options-light.gif';
@@ -16,7 +15,7 @@ import unscheduleGifDark from 'assets/TermPlannerHelp/unschedule-dark.gif';
 import unschedulePicDark from 'assets/TermPlannerHelp/unschedule-dark.jpg';
 import unscheduleGifLight from 'assets/TermPlannerHelp/unschedule-light.gif';
 import unschedulePicLight from 'assets/TermPlannerHelp/unschedule-light.jpg';
-import type { RootState } from 'config/store';
+import useSettings from 'hooks/useSettings';
 import CS from '../common/styles';
 import S from './styles';
 
@@ -46,7 +45,7 @@ const HelpStep = ({ title, gif, pic, altText }: HelpStepProps) => {
 };
 
 const HelpMenu = () => {
-  const { theme } = useSelector((state: RootState) => state.settings);
+  const { theme } = useSettings();
   const helpSteps = [
     {
       title: '1. Drag and Drop Courses',
@@ -81,7 +80,7 @@ const HelpMenu = () => {
         <CS.MenuDivider />
       </S.HeaderWrapper>
       {helpSteps.map(({ title, pic, gif, altText }) => (
-        <HelpStep title={title} gif={gif} pic={pic} altText={altText} />
+        <HelpStep key={title} title={title} gif={gif} pic={pic} altText={altText} />
       ))}
     </S.HelpMenuWrapper>
   );

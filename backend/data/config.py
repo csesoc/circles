@@ -14,10 +14,11 @@ Assumes that `/backend` is the current working directory.
 # The latest current handbook year that we will maintain all the algorithms for
 from typing import List
 
-LIVE_YEAR: int = 2024
+# Don't forget to update live year in the frontend too
+LIVE_YEAR: int = 2025
 
 # The years for which we have archived
-ARCHIVED_YEARS: List[int] = [2019, 2020, 2021, 2022, 2023]
+ARCHIVED_YEARS: List[int] = list(range(2019, LIVE_YEAR + 1))
 
 # TODO: Consider adding file paths to this file so we don't have to type out
 # the exact path to write to every time
@@ -26,4 +27,3 @@ CONDITIONS_TOKEN_FILE: str = "./data/final_data/conditionsTokens.json"
 CONDITIONS_PICKLE_FILE: str = "./data/final_data/conditions.pkl"
 
 GRAPH_CACHE_FILE = "./data/final_data/graph.json"
-

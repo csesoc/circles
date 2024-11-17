@@ -61,7 +61,7 @@ const Header = () => {
 
   return (
     <S.HeaderWrapper>
-      <Link to="/degree-wizard">
+      <Link to="/">
         <S.LogoWrapper>
           <img alt="circles-logo" src={circlesLogo} width="40" height="40" />
           <Title

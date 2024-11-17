@@ -7,7 +7,7 @@ const PageWrapper = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  height: calc(100vh - var(--navbar-height));
+  height: 100vh;
   width: 100%;
   overflow: hidden;
 `;
@@ -21,14 +21,14 @@ const GridCircleWrapper = styled.div`
   width: 100%;
 `;
 
-const LogoBox = styled.div<{ alt?: boolean }>`
+const LogoBox = styled.div<{ $alt?: boolean }>`
   margin: 10px;
   margin-right: 50px;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: ${({ alt }) => (alt ? 'transform: rotate(10deg)' : 'rotate(350deg)')};
+  transform: ${({ $alt }) => ($alt ? 'transform: rotate(10deg)' : 'rotate(350deg)')};
 `;
 
 const TextWrapper = styled.div`

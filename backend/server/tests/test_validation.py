@@ -1,12 +1,15 @@
 # we want to assure that courses that may be accessed from a container are always accurately computed.
 from contextlib import suppress
 from itertools import chain
+import json
 from typing import Any
 import pytest
 import requests
 from server.routers.model import StructureContainer
-from server.tests.courses.test_get_all_unlocked import USERS
 from server.tests.programs.test_get_structure import fake_specs
+
+with open("./algorithms/tests/exampleUsers.json", encoding="utf8") as f:
+    USERS = json.load(f)
 
 FAILS: list[Any] = []
 

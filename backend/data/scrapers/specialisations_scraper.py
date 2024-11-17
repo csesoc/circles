@@ -8,24 +8,24 @@ Step in the data's journey:
     [   ] Customise formatted data (specialisationProcessing.py)
 """
 
-import json
 
-import requests
-from data.scrapers.payload import create_payload, HEADERS, URL
+from data.scrapers.payload import do_requests
 from data.utility import data_helpers
 
 # Note as at May 2021, there are 365 specialisations
-TOTAL_SPNS = 1000
+TOTAL_SPNS = 2000
 
 
 def scrape_spn_data():
     """Retrieves data for all undergraduate specialisations"""
 
-    r = requests.post(URL, data=json.dumps(create_payload(
-        TOTAL_SPNS, content_type="unsw_paos")), headers=HEADERS)
+    data = do_requests("aos", items_per_req=20, max_items=TOTAL_SPNS )
+
+    # we are only keeping undergrad ones for now
+    data = [obj for obj in data if obj["studyLevelValue"] == "ugrd"]
 
     data_helpers.write_data(
-        r.json()["contentlets"], "data/scrapers/specialisationsPureRaw.json"
+        data, "data/scrapers/specialisationsPureRaw.json"
     )
 
 

@@ -36,11 +36,30 @@ const Link = styled.a`
   }
 `;
 
+const RatingWrapper = styled.div`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+`;
+
+const DialWrapper = styled.div`
+  text-align: center;
+  width: 85px;
+`;
+
+const DialLabel = styled.p`
+  font-size: small;
+`;
+
 export default {
   AttributeWrapper,
   AttributeText,
   TermWrapper,
   AttributesWrapperConcise,
   AttributeConcise,
-  Link
+  Link,
+  RatingWrapper,
+  DialWrapper,
+  DialLabel
 };

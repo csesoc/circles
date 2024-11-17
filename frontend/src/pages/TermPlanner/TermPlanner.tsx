@@ -1,94 +1,199 @@
-import React, { Suspense, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { OnDragEndResponder, OnDragStartResponder } from 'react-beautiful-dnd';
-import { useDispatch, useSelector } from 'react-redux';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { Badge } from 'antd';
-import axios from 'axios';
-import { ValidateTermPlanner } from 'types/api';
-import { Term } from 'types/planner';
-import getAllCourseOfferings from 'utils/getAllCourseOfferings';
+import { Course } from 'types/api';
+import { PlannedToTerm, Term, UnPlannedToTerm, UnscheduleCourse } from 'types/planner';
+import {
+  badCourseInfo,
+  badCourses,
+  badPlanner,
+  badValidations,
+  CoursesResponse,
+  PlannerResponse,
+  ValidatesResponse
+} from 'types/userResponse';
+import { getCourseForYearsInfo } from 'utils/api/coursesApi';
+import { DEFAULT_STATIC_QUERY_OPTIONS } from 'utils/apiHooks/hookHelpers';
+import {
+  useSetPlannedCourseToTermMutation,
+  useSetUnplannedCourseToTermMutation,
+  useUnscheduleCourseMutation,
+  useUserCourses,
+  useUserPlanner,
+  useUserTermValidations
+} from 'utils/apiHooks/user';
 import openNotification from 'utils/openNotification';
-import prepareCoursesForValidationPayload from 'utils/prepareCoursesForValidationPayload';
 import PageTemplate from 'components/PageTemplate';
 import Spinner from 'components/Spinner';
-import type { RootState } from 'config/store';
-import {
-  moveCourse,
-  setPlannedCourseToTerm,
-  setUnplannedCourseToTerm,
-  toggleWarnings,
-  unschedule,
-  updateLegacyOfferings
-} from 'reducers/plannerSlice';
+import { LIVE_YEAR } from 'config/constants';
+import useIdentity from 'hooks/useIdentity';
+import useSettings from 'hooks/useSettings';
 import { GridItem } from './common/styles';
 import HideYearTooltip from './HideYearTooltip';
 import OptionsHeader from './OptionsHeader';
 import S from './styles';
 import TermBox from './TermBox';
 import UnplannedColumn from './UnplannedColumn';
-import { checkMultitermInBounds, isPlannerEmpty } from './utils';
+import { isPlannerEmpty } from './utils';
 
 const DragDropContext = React.lazy(() =>
   import('react-beautiful-dnd').then((plot) => ({ default: plot.DragDropContext }))
 );
 
+const extrapolateCourseYears = (
+  data: Record<number, Course>,
+  validYears: number[]
+): Record<number, Course> => {
+  const newData = { ...data };
+  let bestYear = validYears.find((year) => !!data[year]) ?? LIVE_YEAR;
+
+  validYears.forEach((year) => {
+    if (newData[year]) bestYear = year;
+    else
+      newData[year] = {
+        ...newData[bestYear],
+        terms: year > LIVE_YEAR ? newData[LIVE_YEAR].terms : []
+      };
+  });
+
+  return newData;
+};
+
+const badCourseYears = (code: string, validYears: number[]): Record<number, Course> =>
+  Object.fromEntries(validYears.map((year) => [year, { ...badCourseInfo, code }]));
+
+// purposefully verbose typing
+type CodeToCourseYearsMap = { [code: string]: { [year: number]: Course } };
+type YearToCoursesMap = { [year: number]: { [code: string]: Course } };
+
 const TermPlanner = () => {
-  const { showWarnings } = useSelector((state: RootState) => state.settings);
-  const planner = useSelector((state: RootState) => state.planner);
-  const degree = useSelector((state: RootState) => state.degree);
-
   const [draggingCourse, setDraggingCourse] = useState('');
-  const [checkYearMultiTerm, setCheckYearMultiTerm] = useState('');
-  const [multiCourse, setMultiCourse] = useState('');
+  const { hiddenYears } = useSettings();
 
-  const dispatch = useDispatch();
+  const { userId } = useIdentity();
 
-  // needed for useEffect deps as it does not deep compare arrays well enough :c
-  // also only want it to update on new/removed course codes
-  const courses = Object.keys(planner.courses).sort().join('');
+  const queryClient = useQueryClient();
+  const plannerPicRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // update the legacy term offered
-    const updateOfferingsData = async () => {
-      const years: string[] = [];
-      for (let i = 0; i < planner.numYears; i++) {
-        years.push((planner.startYear + i).toString());
+  // Planer obj
+  const plannerQuery = useUserPlanner();
+  const planner: PlannerResponse = plannerQuery.data ?? badPlanner;
+
+  // The user's actual courses obj???????
+  const coursesQuery = useUserCourses();
+  const courses: CoursesResponse = coursesQuery.data ?? badCourses;
+
+  const validateQuery = useUserTermValidations();
+
+  const validations: ValidatesResponse = validateQuery.data ?? badValidations;
+
+  const validYears = [...Array(planner.years.length).keys()].map((y) => y + planner.startYear);
+
+  // comes in as an { [year]: course }[], which gets auto extrapolated, also preseeded with bad data
+  const courseQueries = useQueries({
+    queries: Object.keys(courses).map((code: string) => ({
+      ...DEFAULT_STATIC_QUERY_OPTIONS,
+      queryKey: ['courses', code, 'multiinfo', { years: validYears }],
+      queryFn: () =>
+        getCourseForYearsInfo(
+          code,
+          validYears.filter((year) => year < LIVE_YEAR)
+        ),
+      select: (data: Record<number, Course>) => extrapolateCourseYears(data, validYears),
+      placeholderData: badCourseYears(code, validYears)
+    }))
+  });
+
+  // transform the course info data into usable shapes
+  const courseInfoFlipped: CodeToCourseYearsMap = Object.fromEntries(
+    Object.keys(courses).map((code, index) => [code, courseQueries[index].data!])
+  );
+
+  const courseInfos: YearToCoursesMap = Object.fromEntries(
+    validYears.map((year) => [
+      year,
+      Object.fromEntries(
+        Object.entries(courseInfoFlipped).map(([code, courseYears]) => [code, courseYears[year]])
+      )
+    ])
+  );
+
+  // Mutations
+  const setPlannedCourseToTermMutation = useSetPlannedCourseToTermMutation({
+    mutationOptions: {
+      onMutate: (data) => {
+        // TODO: match these keys with queries.ts
+        queryClient.setQueryData(
+          ['user', userId, 'planner'],
+          (prev: PlannerResponse | undefined) => {
+            if (!prev) return badPlanner;
+            const curr: PlannerResponse = structuredClone(prev);
+            curr.years[data.srcRow][data.srcTerm].splice(
+              curr.years[data.srcRow][data.srcTerm].indexOf(data.courseCode),
+              1
+            );
+            curr.years[data.destRow][data.destTerm].splice(data.destIndex, 0, data.courseCode);
+            return curr;
+          }
+        );
       }
+    }
+  });
 
-      // get the outdated legacy offerings
-      const outdated = Object.entries(planner.courses)
-        .filter(([, course]) => {
-          const oldOfferings = course.legacyOfferings;
-          // no legacy offering data, or doesn't include the wanted years
-          return !oldOfferings || years.filter((y) => !(y in oldOfferings)).length > 0;
-        })
-        .map(([code]) => code);
+  const handleSetPlannedCourseToTerm = async (data: PlannedToTerm) => {
+    setPlannedCourseToTermMutation.mutate(data);
+  };
 
-      // update them
-      const data = await getAllCourseOfferings(outdated, years);
-      Object.entries(data).forEach(([code, offerings]) => {
-        dispatch(updateLegacyOfferings({ code, offerings }));
-      });
-    };
-
-    updateOfferingsData();
-
-    // disabled planner.courses as part of useEffect dep to avoid api double calling
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courses, dispatch, planner.numYears, planner.startYear]);
-
-  const payload = JSON.stringify(prepareCoursesForValidationPayload(planner, degree, showWarnings));
-  const plannerEmpty = isPlannerEmpty(planner.years);
-  useEffect(() => {
-    const validateTermPlanner = async () => {
-      try {
-        const res = await axios.post<ValidateTermPlanner>('/planner/validateTermPlanner/', payload);
-        dispatch(toggleWarnings(res.data.courses_state));
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error('Error at validateTermPlanner', err);
+  const setUnplannedCourseToTermMutation = useSetUnplannedCourseToTermMutation({
+    mutationOptions: {
+      onMutate: (data) => {
+        // TODO-olli
+        queryClient.setQueryData(
+          ['user', userId, 'planner'],
+          (prev: PlannerResponse | undefined) => {
+            if (!prev) return badPlanner;
+            const curr: PlannerResponse = structuredClone(prev);
+            curr.unplanned.splice(curr.unplanned.indexOf(data.courseCode), 1);
+            curr.years[data.destRow][data.destTerm].splice(data.destIndex, 0, data.courseCode);
+            return curr;
+          }
+        );
       }
-    };
+    }
+  });
 
+  const handleSetUnplannedCourseToTerm = async (data: UnPlannedToTerm) => {
+    setUnplannedCourseToTermMutation.mutate(data);
+  };
+
+  const unscheduleCourseMutation = useUnscheduleCourseMutation({
+    mutationOptions: {
+      onMutate: (data) => {
+        // TODO-olli: remove from here...
+        queryClient.setQueryData(
+          ['user', userId, 'planner'],
+          (prev: PlannerResponse | undefined) => {
+            if (!prev) return badPlanner;
+            const curr: PlannerResponse = structuredClone(prev);
+            curr.years[data.srcRow as number][data.srcTerm as string].splice(
+              curr.years[data.srcRow as number][data.srcTerm as string].indexOf(data.courseCode),
+              1
+            );
+            curr.unplanned.push(data.courseCode);
+            return curr;
+          }
+        );
+      }
+    }
+  });
+
+  const handleUnscheduleCourse = async (data: UnscheduleCourse) => {
+    unscheduleCourseMutation.mutate(data);
+  };
+
+  const plannerEmpty = isPlannerEmpty(planner);
+  useEffect(() => {
     if (plannerEmpty) {
       openNotification({
         type: 'info',
@@ -97,66 +202,21 @@ const TermPlanner = () => {
           'Add courses from the course selector to the term planner and drag courses from the unplanned column'
       });
     }
-    validateTermPlanner();
-  }, [payload, showWarnings, plannerEmpty, dispatch]);
+  }, [plannerEmpty]);
 
-  const currYear = new Date().getFullYear();
-
-  /* Ref used for exporting planner to image */
-  const plannerPicRef = useRef<HTMLDivElement>(null);
-
-  const handleOnDragStart: OnDragStartResponder = (result) => {
-    const course = result.draggableId.slice(0, 8);
-    setDraggingCourse(course);
-    if (planner.courses[course].isMultiterm) {
-      setCheckYearMultiTerm(result.source.droppableId);
-      setMultiCourse(course);
-    }
+  const handleOnDragStart: OnDragStartResponder = async (result) => {
+    const courseCode = result.draggableId.slice(0, 8);
+    setDraggingCourse(courseCode);
   };
 
-  const handleOnDragEnd: OnDragEndResponder = (result) => {
+  const handleOnDragEnd: OnDragEndResponder = async (result) => {
     setDraggingCourse('');
-    setCheckYearMultiTerm('');
-    setMultiCourse('');
     const { destination, source, draggableId: draggableIdUnique } = result;
     // draggableIdUnique contains course code + term (e.g. COMP151120T1)
     // draggableId only contains the course code (e.g. COMP1511)
     const draggableId = draggableIdUnique.slice(0, 8);
 
     if (!destination) return; // drag outside container
-
-    if (destination.droppableId !== 'unplanned') {
-      // Check if multiterm course extends below bottom row of term planner
-      if (
-        planner.courses[draggableId].isMultiterm &&
-        !checkMultitermInBounds({
-          destRow: Number(destination.droppableId.match(/[0-9]{4}/)?.[0]) - planner.startYear,
-          destTerm: destination.droppableId.match(/T[0-3]/)?.[0] as Term,
-          srcTerm: source.droppableId as Term,
-          course: planner.courses[draggableId],
-          isSummerTerm: planner.isSummerEnabled,
-          numYears: planner.numYears
-        })
-      ) {
-        openNotification({
-          type: 'warning',
-          message: 'Course would extend outside of the term planner',
-          description: `Keep ${draggableId} inside the calendar by moving it to a different term instead`
-        });
-        return;
-      }
-
-      // === moving course to unplanned doesn't require term logic ===
-      if (destination.droppableId !== source.droppableId) {
-        dispatch(
-          moveCourse({
-            course: draggableId,
-            destTerm: destination.droppableId,
-            srcTerm: source.droppableId
-          })
-        );
-      }
-    }
 
     if (destination.droppableId === source.droppableId && destination.index === source.index) {
       // drag to same place
@@ -166,80 +226,88 @@ const TermPlanner = () => {
     const destIndex = destination.index;
 
     if (destination.droppableId === 'unplanned') {
-      // === move course to unplanned ===
-      dispatch(
-        unschedule({
-          destIndex,
-          code: draggableId
-        })
-      );
-      return;
-    }
-
-    const destYear = Number(destination.droppableId.match(/[0-9]{4}/)?.[0]);
-    const destTerm = destination.droppableId.match(/T[0-3]/)?.[0] as Term;
-    const destRow = destYear - planner.startYear;
-
-    if (source.droppableId === 'unplanned') {
-      // === move unplanned course to term ===
-      dispatch(
-        setUnplannedCourseToTerm({
-          destRow,
-          destTerm,
-          destIndex,
-          course: draggableId
-        })
-      );
-    } else {
-      // === move between terms ===
       const srcYear = parseInt(source.droppableId.match(/[0-9]{4}/)?.[0] as string, 10);
       const srcTerm = source.droppableId.match(/T[0-3]/)?.[0] as Term;
       const srcRow = srcYear - planner.startYear;
-      const srcIndex = source.index;
-      dispatch(
-        setPlannedCourseToTerm({
-          srcRow,
-          srcTerm,
-          srcIndex,
-          destRow,
-          destTerm,
-          destIndex,
-          course: draggableId
-        })
-      );
+      handleUnscheduleCourse({
+        srcRow,
+        srcTerm,
+        courseCode: draggableId
+      });
+      return;
+    }
+    if (source.droppableId === 'unplanned') {
+      const destYear = Number(destination.droppableId.match(/[0-9]{4}/)?.[0]);
+      const destTerm = destination.droppableId.match(/T[0-3]/)?.[0] as Term;
+      const destRow = destYear - planner.startYear;
+      // === move unplanned course to term ===
+      const data = {
+        destRow,
+        destTerm,
+        destIndex,
+        courseCode: draggableId
+      };
+      handleSetUnplannedCourseToTerm(data);
+    } else {
+      const srcYear = parseInt(source.droppableId.match(/[0-9]{4}/)?.[0] as string, 10);
+      const srcTerm = source.droppableId.match(/T[0-3]/)?.[0] as Term;
+      const srcRow = srcYear - planner.startYear;
+      const destYear = Number(destination.droppableId.match(/[0-9]{4}/)?.[0]);
+      const destTerm = destination.droppableId.match(/T[0-3]/)?.[0] as Term;
+      const destRow = destYear - planner.startYear;
+      // === move between terms ===
+      const data = {
+        srcRow,
+        srcTerm,
+        destRow,
+        destTerm,
+        destIndex,
+        courseCode: draggableId
+      };
+      handleSetPlannedCourseToTerm(data);
     }
   };
 
   return (
     <PageTemplate>
-      <OptionsHeader plannerRef={plannerPicRef} />
+      <OptionsHeader />
       <S.ContainerWrapper>
-        <Suspense fallback={<Spinner text="Loading Table..." />}>
+        {
+          // TODO: Fix Suspense by updating to react-query v5
+          /* <Suspense fallback={<Spinner text="Loading Table..." />}> */
+        }
+        {plannerQuery.isPending ||
+        coursesQuery.isPending ||
+        courseQueries.some((c) => c.isPlaceholderData) ? (
+          <Spinner text="Loading Table..." />
+        ) : (
           <DragDropContext onDragEnd={handleOnDragEnd} onDragStart={handleOnDragStart}>
             <S.PlannerContainer>
-              <S.PlannerGridWrapper summerEnabled={planner.isSummerEnabled} ref={plannerPicRef}>
+              <S.PlannerGridWrapper $summerEnabled={planner.isSummerEnabled} ref={plannerPicRef}>
                 <GridItem /> {/* Empty grid item for the year */}
                 {planner.isSummerEnabled && <GridItem>Summer</GridItem>}
                 <GridItem>Term 1</GridItem>
                 <GridItem>Term 2</GridItem>
                 <GridItem>Term 3</GridItem>
                 {planner.years.map((year, index) => {
+                  // TODO: move this out
                   const iYear = planner.startYear + index;
                   let yearUOC = 0;
                   Object.keys(year).forEach((termKey) => {
-                    Object.keys(planner.courses).forEach((courseCode) => {
+                    Object.entries(courseInfoFlipped).forEach(([courseCode, courseInfo]) => {
                       if (year[termKey as Term].includes(courseCode)) {
-                        yearUOC += planner.courses[courseCode].UOC;
+                        yearUOC += courseInfo[iYear].UOC;
                       }
                     });
                   });
-                  if (planner.hidden[iYear]) return null;
+
+                  if (hiddenYears.includes(index)) return null;
                   return (
                     <React.Fragment key={iYear}>
                       <S.YearGridBox>
                         <S.YearWrapper>
-                          <S.YearText currYear={currYear === iYear}>{iYear}</S.YearText>
-                          <HideYearTooltip year={iYear} />
+                          <S.YearText $currYear={LIVE_YEAR === iYear}>{iYear}</S.YearText>
+                          <HideYearTooltip year={index} />
                         </S.YearWrapper>
                         <Badge
                           style={{
@@ -253,24 +321,43 @@ const TermPlanner = () => {
                       {Object.keys(year).map((term) => {
                         const key = `${iYear}${term}`;
                         if (!planner.isSummerEnabled && term === 'T0') return null;
+                        const codesForThisTerm = year[term];
+                        // TODO: probs map this at TOP-LEVEL
+                        const courseInfoForThisTerm = Object.fromEntries(
+                          codesForThisTerm.map((code) => [code, courseInfos[iYear][code]])
+                        );
                         return (
                           <TermBox
                             key={key}
                             name={key}
-                            coursesList={year[term as Term]}
-                            draggingCourse={!draggingCourse ? undefined : draggingCourse}
-                            currMultiCourseDrag={checkYearMultiTerm === key ? multiCourse : ''}
+                            courseInfos={courseInfos[iYear]}
+                            validateInfos={validations.courses_state}
+                            termCourseInfos={courseInfoForThisTerm}
+                            termCourseCodes={codesForThisTerm}
+                            draggingCourseCode={!draggingCourse ? undefined : draggingCourse}
                           />
                         );
                       })}
                     </React.Fragment>
                   );
                 })}
-                <UnplannedColumn dragging={!!draggingCourse} />
+                <UnplannedColumn
+                  dragging={!!draggingCourse}
+                  courseInfos={Object.fromEntries(
+                    planner.unplanned.map((code) => [
+                      code,
+                      courseInfos[validYears.includes(LIVE_YEAR) ? LIVE_YEAR : validYears.at(-1)!][
+                        code
+                      ]
+                    ])
+                  )}
+                  validateInfos={validations.courses_state}
+                />
               </S.PlannerGridWrapper>
             </S.PlannerContainer>
           </DragDropContext>
-        </Suspense>
+        )}
+        {/* </Suspense> */}
       </S.ContainerWrapper>
     </PageTemplate>
   );

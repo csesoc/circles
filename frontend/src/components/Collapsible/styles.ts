@@ -18,25 +18,25 @@ const CollapsibleHeader = styled.div`
   }
 `;
 
-const CollapseButton = styled(RightOutlined)<{ collapsed: boolean }>`
+const CollapseButton = styled(RightOutlined)<{ $collapsed: boolean }>`
   margin-bottom: 10px;
   padding: 10px;
   transition: 200ms;
   transform: rotate(90deg);
   color: ${({ theme }) => theme.collapseBtnIcon.color};
 
-  ${({ collapsed }) =>
-    collapsed &&
+  ${({ $collapsed }) =>
+    $collapsed &&
     css`
       transform: rotate(0);
     `}
 `;
 
-const CollapsibleContent = styled.div(
-  ({ collapsed }: { collapsed: boolean }) => css`
+const CollapsibleContent = styled.div<{ $collapsed: boolean }>(
+  ({ $collapsed }) => css`
     width: 100%;
     margin: 10px;
-    max-height: ${collapsed ? 0 : 4000}px;
+    max-height: ${$collapsed ? 0 : 4000}px;
     transition: max-height 0.4s ease-in-out;
     overflow: hidden;
   `

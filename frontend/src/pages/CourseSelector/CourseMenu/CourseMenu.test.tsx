@@ -25,22 +25,6 @@ axiosMock.onPost('/courses/getAllUnlocked/').reply(200, {
   }
 });
 
-const structure = {
-  'Major - COMPA1': {
-    name: 'Computer Science',
-    content: {
-      'Core Courses': {
-        UOC: 66,
-        courses: {
-          COMP1511: 'Programming Fundamentals'
-        },
-        type: '',
-        notes: ''
-      }
-    }
-  }
-};
-
 describe('CourseMenu', () => {
   const useDispatchMock = vi.spyOn(hooks, 'useAppDispatch');
 
@@ -50,7 +34,7 @@ describe('CourseMenu', () => {
   });
 
   it('should render', async () => {
-    await renderWithProviders(<CourseMenu structure={structure} />);
+    await renderWithProviders(<CourseMenu />);
     expect(await screen.findByText('Major - COMPA1 - Computer Science')).toBeInTheDocument();
     expect(screen.getByText('Core Courses')).toBeInTheDocument();
     expect(screen.getByText('0 / 66')).toBeInTheDocument();

@@ -3,10 +3,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-import axios from 'axios';
 import type { MigrationManifest } from 'redux-persist';
 import { createMigrate } from 'redux-persist';
-import { Course } from 'types/api';
+import { getCourseInfo } from 'utils/api/coursesApi';
+import { importUser } from 'utils/export';
 
 /**
  * IMPORTANT NOTE:
@@ -43,7 +43,7 @@ const persistMigrations: MigrationManifest = {
     await Promise.all(
       courses.map(async (course) => {
         try {
-          const res = await axios.get<Course>(`/courses/getCourse/${course}`);
+          const res = await getCourseInfo(course);
           if (res.status === 200) {
             const courseData = res.data;
             newState.planner.courses[courseData.code].isMultiterm = courseData.is_multiterm;
@@ -62,6 +62,58 @@ const persistMigrations: MigrationManifest = {
       spec.includes('-') ? spec.split('-')[1] : spec
     );
     return newState;
+  },
+  5: (oldState) => {
+    const newState = {};
+    newState.identity = null;
+    newState.courseTabs = oldState.courseTabs;
+    newState.settings = {
+      theme: 'light',
+      showLockedCourses: oldState.settings.showLockedCourses,
+      showPastWarnings: oldState.settings.showWarnings
+    };
+
+    const hiddenYears = Object.keys(oldState.planner.hidden)
+      .filter((year) => oldState.planner.hidden[year])
+      .map((year) => parseInt(year, 10) - oldState.planner.startYear);
+
+    const courses = Object.fromEntries(
+      Object.entries(oldState.planner.courses).map(([code, course]) => [
+        code,
+        {
+          mark: course.mark === undefined ? null : course.mark,
+          ignoreFromProgression: course.ignoreFromProgression
+        }
+      ])
+    );
+
+    const json = {
+      settings: {
+        showMarks: oldState.settings.showMarks,
+        hiddenYears
+      },
+      degree: {
+        programCode: oldState.degree.programCode,
+        specs: oldState.degree.specs
+      },
+      planner: {
+        unplanned: oldState.planner.unplanned,
+        startYear: oldState.planner.startYear,
+        isSummerEnabled: oldState.planner.isSummerEnabled,
+        lockedTerms: oldState.planner.completedTerms,
+        years: oldState.planner.years
+      },
+      courses
+    };
+
+    try {
+      const user = importUser(json);
+      localStorage.setItem('oldUser', JSON.stringify(user));
+    } catch {
+      // Failed to import user
+    }
+
+    return newState;
   }
 };
 
@@ -72,7 +124,7 @@ const persistMigrations: MigrationManifest = {
  * and alongside it, provide a migration function to translate the old state structure
  * to the new one.
  */
-export const persistVersion = 4;
+export const persistVersion = 5;
 
 const persistMigrate = createMigrate(persistMigrations);
 

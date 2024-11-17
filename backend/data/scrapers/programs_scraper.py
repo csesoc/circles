@@ -7,23 +7,24 @@ Step in the data's journey:
     [   ] Format scraped data (programFormatting.py)
     [   ] Customise formatted data (programProcessing.py)
 """
-import json
 
-import requests
-from data.scrapers.payload import create_payload, HEADERS, URL
+from data.scrapers.payload import do_requests
 from data.utility import data_helpers
 
-TOTAL_PGRMS = 249
+TOTAL_PGRMS = 700 # slighly less than this
 
 
 def scrape_prg_data():
     """
     Retrieves data for all undergraduate programs
     """
-    r = requests.post(URL, data=json.dumps(create_payload(
-        TOTAL_PGRMS, content_type="unsw_pcourse")), headers=HEADERS)
+    data = do_requests("course", items_per_req=20, max_items=TOTAL_PGRMS)
+
+    # we are only keeping undergrad ones for now
+    data = [obj for obj in data if obj["studyLevelValue"] == "ugrd"]
+
     data_helpers.write_data(
-        r.json()["contentlets"], "data/scrapers/programsPureRaw.json"
+        data, "data/scrapers/programsPureRaw.json"
     )
 
 

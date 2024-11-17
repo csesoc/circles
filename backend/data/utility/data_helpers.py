@@ -1,8 +1,8 @@
 """
 Contains helper functions to assist with reading and writing data.
 """
-import sys
 import json
+import sys
 
 
 def read_data(file_name):

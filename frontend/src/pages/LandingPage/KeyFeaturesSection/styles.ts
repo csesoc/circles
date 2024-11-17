@@ -28,11 +28,15 @@ const Card = styled.div`
   height: 275px;
   position: relative;
   width: 250px;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+  box-shadow:
+    0 3px 6px rgba(0, 0, 0, 0.16),
+    0 3px 6px rgba(0, 0, 0, 0.23);
   padding: 45px 25px;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   &:hover {
-    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
+    box-shadow:
+      0 14px 28px rgba(0, 0, 0, 0.25),
+      0 10px 10px rgba(0, 0, 0, 0.22);
   }
 `;
 
@@ -46,12 +50,12 @@ const IconContainer = styled.div`
   background: ${({ color }) => color};
 `;
 
-const FeatureSubtitle = styled.h3<{ startColor: string; endColor: string }>`
+const FeatureSubtitle = styled.h3<{ $startColor: string; $endColor: string }>`
   font-size: 20px;
   background: -webkit-linear-gradient(
     45deg,
-    ${({ startColor }) => startColor},
-    ${({ endColor }) => endColor}
+    ${({ $startColor }) => $startColor},
+    ${({ $endColor }) => $endColor}
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

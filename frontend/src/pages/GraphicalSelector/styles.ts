@@ -1,27 +1,27 @@
 import styled, { css } from 'styled-components';
 import CourseDescriptionPanelComp from 'components/CourseDescriptionPanel';
 
-const Wrapper = styled.div<{ fullscreen: boolean }>`
+const Wrapper = styled.div<{ $fullscreen: boolean }>`
   height: calc(100vh - var(--navbar-height));
   display: flex;
   gap: 20px;
 
-  ${({ fullscreen }) =>
-    !fullscreen &&
+  ${({ $fullscreen }) =>
+    !$fullscreen &&
     css`
       padding: 25px;
     `}
 `;
 
-const GraphWrapper = styled.div<{ fullscreen: boolean }>`
+const GraphWrapper = styled.div<{ $fullscreen: boolean }>`
   height: 100%;
   width: 100%;
   overflow: hidden;
   flex: 5;
   position: relative;
 
-  ${({ fullscreen }) =>
-    !fullscreen &&
+  ${({ $fullscreen }) =>
+    !$fullscreen &&
     css`
       border-radius: 20px;
       border: ${({ theme }) => theme.graph.borderColor} solid 1px;

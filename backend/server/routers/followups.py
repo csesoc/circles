@@ -1,8 +1,7 @@
 import json
 
 from fastapi import APIRouter, HTTPException
-
-from server.database import coursesCOL
+from server.db.mongo.conn import coursesCOL
 
 router = APIRouter(
     prefix="/followups",
@@ -14,7 +13,7 @@ def get_next_term(term: str) -> str:
     terms = ['S', 'T1', 'T2', 'T3']
     try:
         return terms[(terms.index(term) + 1) % 4]
-    except:
+    except ValueError:
         return "invalid_term"
 
 
@@ -54,18 +53,18 @@ def get_followups(origin_course: str, origin_term: str) -> dict[str, str | dict[
 
     next_term = get_next_term(origin_term)
 
-    if (next_term == 'invalid_term'):
+    if next_term == 'invalid_term':
         raise HTTPException(400, f"Invalid term {origin_term}")
 
     # we only have enrolment data from T2(2022) -> T3(2022) at this stage
-    if (origin_term != 'T2'):
+    if origin_term != 'T2':
         raise HTTPException(400, "Data only available from T2")
 
     # get all comp courses
     all_comp_courses = filter(lambda course: course.startswith("COMP"),
                               [course["code"] for course in coursesCOL.find()])
 
-    if (origin_course not in all_comp_courses):
+    if origin_course not in all_comp_courses:
         raise HTTPException(400, f"Invalid COMP course {origin_course}")
 
     # get enrolment data
@@ -106,4 +105,3 @@ def get_set_enrolled_in_term(
     term: str
 ) -> set[str]:
     return set(enrolment_data.get(course, {}).get(term, []))
-

@@ -5,3 +5,7 @@ URI = "mongodb://mongodb:27017/?readPreference=primary&appname=MongoDB%20Compass
 FINAL_DATA_PATH = "./data/final_data/"
 
 ARCHIVED_DATA_PATH = "./data/final_data/archive/processed/"
+
+DUMMY_TOKEN = "token"  # TODO: get rid of this
+
+SECURE_COOKIES = True

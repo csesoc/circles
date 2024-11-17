@@ -1,5 +1,6 @@
 import requests
 
+
 def test_error_invalid_term():
     x = requests.get('http://127.0.0.1:8000/followups/getFollowups/COMP1511/&&')
     assert x.status_code == 400

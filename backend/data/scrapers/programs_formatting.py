@@ -19,6 +19,7 @@ Step in the data's journey:
 """
 import json
 import re
+
 from data.utility import data_helpers
 
 
@@ -39,7 +40,13 @@ def format_prg_data() -> None:
 
         # Setup dictionary and add data
         course_code = init_program(programs_formatted, data)
-        add_data(programs_formatted, course_code, program, data, curriculum_structure)
+        try:
+            add_data(programs_formatted, course_code, program, data, curriculum_structure)
+        except KeyError as key_err:
+            # we only care if it's not a research course lacking a program structure (there are about 100 such courses)
+            if str(key_err) != "'container'" or program['studyLevelValue'] != 'rsch':
+                raise key_err
+            programs_formatted.pop(course_code)
 
     data_helpers.write_data(
         programs_formatted, "data/scrapers/programsFormattedRaw.json"
@@ -50,7 +57,7 @@ def init_program(programs_formatted, data):
     """
     Initialises dictionary and assigns it to main programs dictionary
     """
-    content = { # type: ignore # TODO: annotate this if you want
+    content = {  # type: ignore  # TODO: annotate this if you want
         "title": None,
         "code": None,
         "UOC": None,

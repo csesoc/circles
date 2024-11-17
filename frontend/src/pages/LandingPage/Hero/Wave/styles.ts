@@ -27,7 +27,8 @@ const waveStyle = css`
 const WaveForeground = styled.div`
   ${waveStyle}
   background: url(${waveForeground}) repeat-x;
-  animation: ${waveAnimation} 13s cubic-bezier(0.36, 0.45, 0.63, 0.53) -0.125s infinite,
+  animation:
+    ${waveAnimation} 13s cubic-bezier(0.36, 0.45, 0.63, 0.53) -0.125s infinite,
     ${waveSwell} 5s ease -1.25s infinite;
   @media (min-width: 1024px) {
     top: -38vh;
