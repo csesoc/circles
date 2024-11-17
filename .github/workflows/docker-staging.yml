@@ -52,8 +52,8 @@ jobs:
     name: Deploy (CD)
     runs-on: ubuntu-latest
     needs: [build]
-    concurrency: production
-    environment: production
+    concurrency: staging
+    environment: staging
     if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/331-staging' }}
 
     steps:
