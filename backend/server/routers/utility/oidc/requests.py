@@ -269,6 +269,7 @@ def validate_id_token(token: str, access_token: str) -> DecodedIDToken:
             audience=CLIENT_ID,
             issuer=config["issuer"],
             options={ "verify_signature": True },
+            leeway=5,
         )
     except jwt.exceptions.InvalidTokenError as e:
         raise OIDCValidationError(
