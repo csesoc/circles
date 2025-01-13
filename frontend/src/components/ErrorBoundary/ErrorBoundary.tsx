@@ -40,8 +40,12 @@ class ErrorBoundary extends React.Component<Props, State> {
       window.location.href = '/degree-wizard';
     };
 
-    const gotoCourses = () => {
-      window.location.href = '/course-selector';
+    const gotoLanding = () => {
+      window.location.href = '/';
+    };
+
+    const gotologout = () => {
+      window.location.href = '/logout';
     };
 
     const openModal = () => {
@@ -57,27 +61,33 @@ class ErrorBoundary extends React.Component<Props, State> {
       return (
         <S.Container>
           <ResetModal open={modalOpen} onOk={gotoDegrees} onCancel={closeModal} />
-          <h1>An error has occurred. You should never see this...</h1>
+          <h1>An error has occurred, please try the following steps:</h1>
           <S.TextBody>
             <p>
-              Unfortunately, due to a bug in Circles, an error has occurred. If you want to help us
-              fix this bug, please let us know! We would greatly appreciate it!
+              1. Try refreshing the current page. If the issue persists, consider the options below:
             </p>
             <p>
+              2. Send us a screenshot of this page along with a brief description of what you were
+              doing when the error occurred by filling out this form&nbsp;
+              <a href={FEEDBACK_LINK} target="_blank" rel="noreferrer">
+                here
+              </a>
+              .
+            </p>
+            {/* <p>
               Fill in this form&nbsp;
               <a href={FEEDBACK_LINK} target="_blank" rel="noreferrer">
                 here
               </a>
               &nbsp;to inform us how the error occurred! Please also include brief description on
               the steps that led up to the error and a copy of the error messages seen below.
-            </p>
-            <p>
-              If you are seeing this page often, try to reset your data by clicking the &apos;Reset
-              Data&apos; button. Otherwise, you can return back to planning your future degree!
-            </p>
+            </p> */}
             <Space wrap>
-              <Button onClick={gotoCourses} type="primary">
+              <Button onClick={gotoLanding} type="primary">
                 Return to Circles
+              </Button>
+              <Button onClick={gotologout} type="primary">
+                Logout
               </Button>
               <Button onClick={openModal} type="primary" danger>
                 Reset Data
